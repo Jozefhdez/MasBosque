@@ -20,7 +20,7 @@ This project was developed as part of a collaborative initiative for **Bosque de
 - **Secure & Reliable:** Encrypted communication channels ensure data privacy and message reliability.
 - **Volunteer Dashboard:** Web interface for monitoring active alerts, tracking rescues, and exporting data.
 
-## Tech Stack 🛠️
+## Tech Stack
 - **Frontend:** ![React Native](https://img.shields.io/badge/React%20Native-20232A?style=flat&logo=react&logoColor=61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
 - **Backend:** ![AWS Amplify](https://img.shields.io/badge/AWS%20Amplify-FF9900?style=flat&logo=aws-amplify&logoColor=white) ![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazon-dynamodb&logoColor=white) ![AWS Lambda](https://img.shields.io/badge/AWS%20Lambda-FF9900?style=flat&logo=aws-lambda&logoColor=white) ![API Gateway](https://img.shields.io/badge/API%20Gateway-FF4F8B?style=flat&logo=amazon-api-gateway&logoColor=white)
 - **Communication:** ![Bluetooth](https://img.shields.io/badge/Bluetooth-0082FC?style=flat&logo=bluetooth&logoColor=white) ![LoRa](https://img.shields.io/badge/LoRa-00AEEF?style=flat&logo=lorawan&logoColor=white)
