@@ -16,11 +16,11 @@ This project was developed as part of a collaborative initiative for **Bosque de
 - **Secure & Reliable:** Encrypted communication channels ensure data privacy and message reliability.
 - **Volunteer Dashboard:** Web interface for monitoring active alerts, tracking rescues, and exporting data.
 
-## Tech Stack
-- **Frontend:** React Native, TypeScript
-- **Backend:** AWS Amplify, DynamoDB, Lambda, API Gateway
-- **Communication:** Bluetooth LoRa mesh network
-- **Other Tools:** Git, CI/CD pipelines
+## Tech Stack 🛠️
+- **Frontend:** ![React Native](https://img.shields.io/badge/React%20Native-20232A?style=flat&logo=react&logoColor=61DAFB) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+- **Backend:** ![AWS Amplify](https://img.shields.io/badge/AWS%20Amplify-FF9900?style=flat&logo=aws-amplify&logoColor=white) ![DynamoDB](https://img.shields.io/badge/DynamoDB-4053D6?style=flat&logo=amazon-dynamodb&logoColor=white) ![AWS Lambda](https://img.shields.io/badge/AWS%20Lambda-FF9900?style=flat&logo=aws-lambda&logoColor=white) ![API Gateway](https://img.shields.io/badge/API%20Gateway-FF4F8B?style=flat&logo=amazon-api-gateway&logoColor=white)
+- **Communication:** ![Bluetooth](https://img.shields.io/badge/Bluetooth-0082FC?style=flat&logo=bluetooth&logoColor=white) LoRa mesh network
+- **Other Tools:** ![Git](https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white) CI/CD pipelines
 
 ## Architecture
 1. User taps SOS button on the app.
