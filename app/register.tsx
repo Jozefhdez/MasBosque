@@ -1,7 +1,8 @@
 import { Text, View, Button } from "react-native";
 import { router } from "expo-router";
 
-export default function Index() {
+
+export default function Register() {
   return (
     <View
       style={{
@@ -10,9 +11,8 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Bienvenido</Text>
-      <Button title="Iniciar sesión" onPress={() => router.push("./login")} />
-      <Button title="Registrar" onPress={() => router.push("./register")} />
+      <Text>Registrar</Text>
+      <Button title="Completar perfil" onPress={() => router.push("./completeProfile")} />
     </View>
   );
 }
