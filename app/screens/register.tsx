@@ -1,0 +1,344 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../App';
+
+type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
+
+type Props = {
+  navigation: RegisterScreenNavigationProp;
+};
+
+const Register = ({ navigation }: Props) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const handleRegister = () => {
+    if (!acceptedTerms) {
+      alert('Debes aceptar los términos y condiciones');
+      return;
+    }
+    // Aquí implementarías la lógica de registro
+    console.log('Registro:', { firstName, lastName, email, password });
+    // Después de un registro exitoso, navegar a CompleteProfile
+    navigation.navigate('CompleteProfile');
+  };
+
+  const handleLoginRedirect = () => {
+    // Navegar a la pantalla de login
+    navigation.navigate('Login');
+  };
+
+  const handleTermsPress = () => {
+    // Abrir términos y condiciones
+    console.log('Abrir Acuerdo de usuario');
+  };
+
+  const handlePrivacyPress = () => {
+    // Abrir política de privacidad
+    console.log('Abrir Política de privacidad');
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Logo y título */}
+        <View style={styles.header}>
+          <Text style={styles.logo}>
+            <Text style={styles.logoPlus}>+</Text>
+            <Text style={styles.logoBosque}>Bosque</Text>
+          </Text>
+          <Text style={styles.logoManu}>Manu</Text>
+        </View>
+
+        {/* Formulario */}
+        <View style={styles.form}>
+          {/* Campo de nombre(s) */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Nombre(s)</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="..."
+                placeholderTextColor="#999"
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+              />
+              {firstName.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setFirstName('')}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Campo de apellido */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Apellido</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="..."
+                placeholderTextColor="#999"
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+              />
+              {lastName.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setLastName('')}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Campo de correo */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Correo</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="..."
+                placeholderTextColor="#999"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+              {email.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setEmail('')}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Campo de contraseña */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Contraseña</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="..."
+                placeholderTextColor="#999"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="password"
+              />
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Checkbox de términos y condiciones */}
+          <TouchableOpacity
+            style={styles.termsContainer}
+            onPress={() => setAcceptedTerms(!acceptedTerms)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.checkbox}>
+              {acceptedTerms && <View style={styles.checkboxFilled} />}
+            </View>
+            <Text style={styles.termsText}>
+              He leído y estoy de acuerdo con el{' '}
+              <Text style={styles.termsLink} onPress={handleTermsPress}>
+                Acuerdo de usuario
+              </Text>
+              {' '}y{' '}
+              <Text style={styles.termsLink} onPress={handlePrivacyPress}>
+                Política de privacidad
+              </Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Botón de registro */}
+        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+          <Text style={styles.registerButtonText}>Registrarse</Text>
+        </TouchableOpacity>
+
+        {/* Ya tienes cuenta */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Ya tienes cuenta? </Text>
+          <TouchableOpacity onPress={handleLoginRedirect}>
+            <Text style={styles.loginText}>Iniciar sesión</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F0',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  logoPlus: {
+    color: '#2D5016',
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  logoBosque: {
+    color: '#2D5016',
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  logoManu: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#000',
+    marginTop: -8,
+  },
+  form: {
+    marginBottom: 24,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8E8E0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 52,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  iconButton: {
+    padding: 8,
+  },
+  clearIcon: {
+    fontSize: 18,
+    color: '#666',
+  },
+  eyeIcon: {
+    fontSize: 20,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#2D5016',
+    marginRight: 12,
+    marginTop: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxFilled: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#2D5016',
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: '#2D5016',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  registerButton: {
+    backgroundColor: '#2D5016',
+    borderRadius: 12,
+    height: 56,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  registerButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  loginText: {
+    fontSize: 14,
+    color: '#2D5016',
+    fontWeight: '600',
+  },
+});
+
+export default Register;
