@@ -10,16 +10,10 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import { useRouter } from 'expo-router';
 
-type RegisterScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
-
-type Props = {
-  navigation: RegisterScreenNavigationProp;
-};
-
-const Register = ({ navigation }: Props) => {
+const Register = () => {
+  const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');

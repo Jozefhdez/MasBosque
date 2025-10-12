@@ -7,16 +7,10 @@ import {
   StatusBar,
   Animated,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import { useRouter } from 'expo-router';
 
-type SOSScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SOS'>;
-
-type Props = {
-  navigation: SOSScreenNavigationProp;
-};
-
-const SOS = ({ navigation }: Props) => {
+const SOS = () => {
+  const router = useRouter();
   const [isConnected, setIsConnected] = useState(true);
   const [isSOSActive, setIsSOSActive] = useState(false);
   const scaleAnim = new Animated.Value(1);

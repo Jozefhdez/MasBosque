@@ -10,16 +10,10 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import { useRouter } from 'expo-router';
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
-
-type Props = {
-  navigation: LoginScreenNavigationProp;
-};
-
-const Login = ({ navigation }: Props) => {
+const Login = () => {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,11 +21,13 @@ const Login = ({ navigation }: Props) => {
   const handleLogin = () => {
     // Aquí implementarías la lógica de inicio de sesión
     console.log('Login:', { email, password });
+    // Después de un login exitoso, navegar a SOS
+    navigation.navigate('SOS');
   };
 
   const handleCreateAccount = () => {
     // Navegar a la pantalla de crear cuenta
-    console.log('Crear cuenta');
+    navigation.navigate('Register');
   };
 
   const handleForgotPassword = () => {

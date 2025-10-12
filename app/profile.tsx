@@ -9,16 +9,10 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import { useRouter } from 'expo-router';
 
-type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
-
-type Props = {
-  navigation: ProfileScreenNavigationProp;
-};
-
-const Profile = ({ navigation }: Props) => {
+const Profile = () => {
+  const router = useRouter();
   const handleBack = () => {
     navigation.goBack();
   };
