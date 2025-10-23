@@ -7,24 +7,17 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
-  Image,
   Alert,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
-
-type CompleteProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'CompleteProfile'>;
-
-type Props = {
-  navigation: CompleteProfileScreenNavigationProp;
-};
+import { useRouter } from 'expo-router';
 
 type Allergy = {
   id: string;
   value: string;
 };
 
-const CompleteProfile = ({ navigation }: Props) => {
+export default function CompleteProfile() {
+  const router = useRouter();
   const [userName] = useState('Juan Alfredo Peréz');
   const [allergies, setAllergies] = useState<Allergy[]>([
     { id: '1', value: 'Ibuprofeno' },
@@ -33,9 +26,7 @@ const CompleteProfile = ({ navigation }: Props) => {
   ]);
 
   const handleAddPhoto = () => {
-    // Aquí implementarías la lógica para seleccionar una foto
     Alert.alert('Agregar foto', 'Funcionalidad de cámara/galería próximamente');
-    console.log('Abrir selector de imagen');
   };
 
   const handleRemoveAllergy = (id: string) => {
@@ -54,7 +45,6 @@ const CompleteProfile = ({ navigation }: Props) => {
   };
 
   const handleContinue = () => {
-    // Validar que haya al menos una alergia con valor
     const validAllergies = allergies.filter(a => a.value.trim() !== '');
 
     if (validAllergies.length === 0) {
@@ -63,29 +53,20 @@ const CompleteProfile = ({ navigation }: Props) => {
     }
 
     console.log('Perfil completado:', { userName, allergies: validAllergies });
-    // Navegar a la pantalla principal (SOS)
-    navigation.navigate('SOS');
+    router.replace('/sos');
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#2C2C2C" />
-
-      {/* Header oscuro */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Complete Profile</Text>
-      </View>
 
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Nombre del usuario */}
         <Text style={styles.userName}>{userName}</Text>
-        <Text style={styles.subtitle}>Agregar foto de perfil</Text>
+        <Text style={styles.sectionTitle}>Agregar foto de perfil</Text>
 
-        {/* Avatar con botón de editar */}
         <TouchableOpacity
           style={styles.avatarContainer}
           onPress={handleAddPhoto}
@@ -98,10 +79,8 @@ const CompleteProfile = ({ navigation }: Props) => {
           </View>
         </TouchableOpacity>
 
-        {/* Sección de alergias */}
         <Text style={styles.sectionTitle}>Alergias o medicamento contraindicados</Text>
 
-        {/* Lista de alergias */}
         <View style={styles.allergiesContainer}>
           {allergies.map((allergy) => (
             <View key={allergy.id} style={styles.allergyRow}>
@@ -127,7 +106,6 @@ const CompleteProfile = ({ navigation }: Props) => {
             </View>
           ))}
 
-          {/* Botón agregar alergia */}
           <TouchableOpacity
             style={styles.addAllergyButton}
             onPress={handleAddAllergy}
@@ -137,7 +115,6 @@ const CompleteProfile = ({ navigation }: Props) => {
           </TouchableOpacity>
         </View>
 
-        {/* Botón continuar */}
         <TouchableOpacity
           style={styles.continueButton}
           onPress={handleContinue}
@@ -147,7 +124,7 @@ const CompleteProfile = ({ navigation }: Props) => {
       </ScrollView>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -167,6 +144,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingTop: 40,
   },
   scrollContainer: {
     paddingHorizontal: 24,
@@ -216,7 +194,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
+    color: '#054324',
     marginBottom: 16,
   },
   allergiesContainer: {
@@ -297,5 +275,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default CompleteProfile;

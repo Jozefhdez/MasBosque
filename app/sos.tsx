@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,47 +6,43 @@ import {
   StyleSheet,
   StatusBar,
   Animated,
+  PanResponder,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import Svg, { Polygon, Circle, Defs, Filter, FeGaussianBlur, FeOffset } from 'react-native-svg';
 
-const SOS = () => {
-  const router = useRouter();
-  const [isConnected, setIsConnected] = useState(true);
+export default function SOS() {
   const [isSOSActive, setIsSOSActive] = useState(false);
-  const scaleAnim = new Animated.Value(1);
-  const pulseAnim = new Animated.Value(1);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
 
-  // Animación de pulso continuo para el botón
   useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.05,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-
-    return () => pulse.stop();
-  }, []);
+    if (!isSOSActive) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+  }, [isSOSActive]);
 
   const handleSOSPress = () => {
-    if (isSOSActive) {
-      // Si ya está activo, no hacer nada (debe cancelarse con el botón)
-      return;
-    }
+    if (isSOSActive) return;
 
-    // Animación de presión
     Animated.sequence([
       Animated.timing(scaleAnim, {
-        toValue: 0.9,
+        toValue: 0.95,
         duration: 100,
         useNativeDriver: true,
       }),
@@ -57,282 +53,277 @@ const SOS = () => {
       }),
     ]).start();
 
-    // Activar estado SOS
     setIsSOSActive(true);
-    console.log('¡ALERTA SOS ACTIVADA!');
   };
 
-  const handleCancelSOS = () => {
-    setIsSOSActive(false);
-    console.log('Alerta SOS cancelada');
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dx > 0 && gestureState.dx < 200) {
+          slideAnim.setValue(gestureState.dx);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx > 150) {
+          Animated.timing(slideAnim, {
+            toValue: 220,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => {
+            setIsSOSActive(false);
+            slideAnim.setValue(0);
+          });
+        } else {
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  // Función para calcular puntos del hexágono (orientación con punta arriba)
+  const getHexagonPoints = (centerX: number, centerY: number, radius: number) => {
+    const points = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI / 3) * i - Math.PI / 2; // Rotado 90° para punta arriba
+      const x = centerX + radius * Math.cos(angle);
+      const y = centerY + radius * Math.sin(angle);
+      points.push(`${x},${y}`);
+    }
+    return points.join(' ');
   };
+
+  const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
   return (
     <View style={[styles.container, isSOSActive && styles.containerActive]}>
       <StatusBar
         barStyle={isSOSActive ? "light-content" : "dark-content"}
-        backgroundColor={isSOSActive ? "#A63C3C" : "#F5F5F0"}
+        backgroundColor={isSOSActive ? "#B73239" : "#FFFFFF"}
       />
 
-      {/* Título SOS */}
-      <Text style={[styles.title, isSOSActive && styles.titleActive]}>SOS</Text>
+      {/* SOS Title */}
+      <Text style={[styles.sosTitle, isSOSActive && styles.sosTitleActive]}>
+        SOS
+      </Text>
 
-      {/* Botón SOS con animación */}
-      <View style={styles.buttonContainer}>
-        {!isSOSActive && (
-          <Animated.View
-            style={[
-              styles.pulseCircle,
-              {
-                transform: [{ scale: pulseAnim }],
-              },
-            ]}
-          />
-        )}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleSOSPress}
-          style={styles.sosButtonWrapper}
+      {/* SOS Button - Hexagon Shape */}
+      <View style={styles.sosContainer}>
+        <Animated.View
+          style={[
+            styles.hexagonWrapper,
+            { transform: [{ scale: isSOSActive ? 1 : pulseAnim }] }
+          ]}
         >
-          <Animated.View
-            style={[
-              styles.sosButton,
-              isSOSActive && styles.sosButtonActive,
-              {
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
+          <TouchableOpacity
+            onPress={handleSOSPress}
+            activeOpacity={0.8}
+            disabled={isSOSActive}
+            style={styles.hexagonButton}
           >
-            {/* Círculos concéntricos */}
-            <View style={styles.circle1} />
-            <View style={styles.circle2} />
-            <View style={styles.circle3} />
-            <View style={styles.centerDot} />
-          </Animated.View>
-        </TouchableOpacity>
+            <AnimatedSvg width="300" height="300" viewBox="0 0 300 300">
+              <Defs>
+                <Filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <FeOffset result="offOut" in="SourceAlpha" dx="0" dy="8" />
+                  <FeGaussianBlur result="blurOut" in="offOut" stdDeviation="15" />
+                </Filter>
+              </Defs>
+
+              {/* Sombra del hexágono */}
+              <Polygon
+                points={getHexagonPoints(150, 150, 120)}
+                fill="rgba(0,0,0,0.25)"
+                filter="url(#shadow)"
+              />
+
+              {/* Hexágono principal */}
+              <Polygon
+                points={getHexagonPoints(150, 150, 120)}
+                fill={isSOSActive ? "#8B2630" : "#B73239"}
+              />
+
+              {/* Círculos concéntricos */}
+              <Circle cx="150" cy="150" r="85" fill="none" stroke="#FFFFFF" strokeWidth="4" />
+              <Circle cx="150" cy="150" r="55" fill="none" stroke="#FFFFFF" strokeWidth="4" />
+              <Circle cx="150" cy="150" r="22" fill="none" stroke="#FFFFFF" strokeWidth="4" />
+            </AnimatedSvg>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {isSOSActive && (
+          <Text style={styles.helpText}>Pidiendo ayuda</Text>
+        )}
       </View>
 
-      {/* Mensaje de estado */}
-      {isSOSActive ? (
-        <Text style={styles.statusMessage}>Pidiendo ayuda</Text>
-      ) : (
-        <View style={styles.statusContainer}>
-          <View style={[styles.statusDot, isConnected && styles.statusDotActive]} />
-          <Text style={styles.statusText}>
-            {isConnected ? 'Conectado a la red' : 'Sin conexión'}
-          </Text>
-        </View>
-      )}
-
-      {/* Información del usuario o botón cancelar */}
-      {isSOSActive ? (
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={handleCancelSOS}
-          activeOpacity={0.8}
-        >
-          <View style={styles.cancelCircle} />
-          <Text style={styles.cancelButtonText}>Desliza para cancelar</Text>
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={styles.userContainer}
-          onPress={() => navigation.navigate('Profile')}
-          activeOpacity={0.7}
-        >
-          <View style={styles.avatar}>
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarEmoji}>🌳</Text>
-            </View>
+      {/* Bottom Section */}
+      {!isSOSActive ? (
+        <View style={styles.bottomSection}>
+          <View style={styles.statusContainer}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>Conectado a la red</Text>
           </View>
-          <Text style={styles.userName}>Juan Alfredo Peréz</Text>
-        </TouchableOpacity>
+
+          <View style={styles.userCard}>
+            <View style={styles.userAvatar}>
+              <Text style={styles.userAvatarText}>JP</Text>
+            </View>
+            <Text style={styles.userName}>Juan Alfredo Peréz</Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.sliderContainer}>
+          <View style={styles.sliderTrack}>
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={[
+                styles.sliderThumb,
+                {
+                  transform: [{ translateX: slideAnim }],
+                },
+              ]}
+            >
+              <View style={styles.sliderCircle} />
+            </Animated.View>
+            <Text style={styles.sliderText}>Desliza para cancelar</Text>
+          </View>
+        </View>
       )}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F0',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 80,
   },
   containerActive: {
-    backgroundColor: '#A63C3C',
+    backgroundColor: '#B73239',
   },
-  title: {
+  sosTitle: {
     fontSize: 64,
-    fontWeight: '700',
-    color: '#A63C3C',
+    fontWeight: '800',
+    color: '#B73239',
     letterSpacing: 8,
-    marginBottom: 60,
+    marginBottom: 40,
   },
-  titleActive: {
+  sosTitleActive: {
     color: '#FFFFFF',
   },
-  buttonContainer: {
-    alignItems: 'center',
+  sosContainer: {
+    flex: 1,
     justifyContent: 'center',
-    marginBottom: 60,
-    position: 'relative',
-  },
-  pulseCircle: {
-    position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#A63C3C',
-    opacity: 0.1,
-  },
-  sosButtonWrapper: {
-    shadowColor: '#A63C3C',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  sosButton: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: '#A63C3C',
     alignItems: 'center',
+  },
+  hexagonWrapper: {
+    width: 300,
+    height: 300,
     justifyContent: 'center',
-    position: 'relative',
+    alignItems: 'center',
   },
-  sosButtonActive: {
-    backgroundColor: '#8B2F2F',
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
+  hexagonButton: {
+    width: 300,
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  circle1: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+  helpText: {
+    marginTop: 40,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
   },
-  circle2: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  circle3: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  centerDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+  bottomSection: {
+    width: '100%',
+    paddingBottom: 40,
+    alignItems: 'center',
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 80,
+    marginBottom: 30,
   },
   statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#CCC',
-    marginRight: 8,
-  },
-  statusDotActive: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: '#4CAF50',
+    marginRight: 10,
   },
   statusText: {
     fontSize: 16,
-    color: '#333',
+    color: '#333333',
     fontWeight: '500',
   },
-  statusMessage: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginBottom: 100,
-  },
-  userContainer: {
+  userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-    overflow: 'hidden',
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#E8E8E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarEmoji: {
-    fontSize: 24,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  cancelButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
+    width: '85%',
   },
-  cancelCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#E8E8E0',
-    marginRight: 12,
+  userAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#8B9D6F',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  cancelButtonText: {
-    fontSize: 16,
+  userAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  userName: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#000',
+    color: '#1A1A1A',
+  },
+  sliderContainer: {
+    width: '100%',
+    paddingHorizontal: 30,
+    paddingBottom: 60,
+  },
+  sliderTrack: {
+    height: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 35,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  sliderThumb: {
+    position: 'absolute',
+    left: 8,
+    width: 54,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sliderCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#B73239',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  sliderText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    marginLeft: 20,
   },
 });
-
-export default SOS;

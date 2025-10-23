@@ -9,239 +9,149 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const Login = () => {
+export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
-    // Aquí implementarías la lógica de inicio de sesión
     console.log('Login:', { email, password });
-    // Después de un login exitoso, navegar a SOS
-    navigation.navigate('SOS');
+    router.push('/sos');
   };
 
   const handleCreateAccount = () => {
-    // Navegar a la pantalla de crear cuenta
-    navigation.navigate('Register');
+    router.push('/register');
   };
 
   const handleForgotPassword = () => {
-    // Navegar a la pantalla de recuperar contraseña
     console.log('Olvidaste tu contraseña');
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ImageBackground
+      source={{ uri: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200' }}
+      style={styles.backgroundImage}
+      resizeMode="cover"
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo y título */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>
-            <Text style={styles.logoPlus}>+</Text>
-            <Text style={styles.logoBosque}>Bosque</Text>
-          </Text>
-          <Text style={styles.logoManu}>Manu</Text>
-        </View>
+        <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.3)" translucent />
 
-        {/* Saludo */}
-        <Text style={styles.greeting}>Hola de nuevo !</Text>
-
-        {/* Formulario */}
-        <View style={styles.form}>
-          {/* Campo de correo electrónico */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Correo electrónico</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="..."
-                placeholderTextColor="#999"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-              {email.length > 0 && (
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setEmail('')}
-                >
-                  <Text style={styles.clearIcon}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Campo de contraseña */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="..."
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-              />
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️'}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* ¿Olvidaste tu contraseña? */}
-          <TouchableOpacity onPress={handleForgotPassword}>
-            <Text style={styles.forgotPassword}>
-              Olvidaste tu contraseña?
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Text style={styles.logo}>
+              <Text style={styles.logoPlus}>+</Text>
+              <Text style={styles.logoBosque}>Bosque</Text>
             </Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={styles.logoManu}>Manu</Text>
+          </View>
 
-        {/* Botón de iniciar sesión */}
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-        </TouchableOpacity>
-
-        {/* Crear cuenta */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Aún no tienes cuenta? </Text>
-          <TouchableOpacity onPress={handleCreateAccount}>
-            <Text style={styles.createAccountText}>Crear Cuenta</Text>
+          {/* Botón Iniciar Sesión */}
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+          >
+            <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          {/* Botón Registrarse */}
+          <TouchableOpacity
+            style={styles.registerButton}
+            onPress={handleCreateAccount}
+          >
+            <Text style={styles.registerButtonText}>Registrarse</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F0',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  header: {
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 120,
   },
   logo: {
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: '700',
   },
   logoPlus: {
-    color: '#2D5016',
-    fontSize: 32,
+    color: '#FFFFFF',
+    fontSize: 40,
     fontWeight: '700',
   },
   logoBosque: {
-    color: '#2D5016',
-    fontSize: 32,
+    color: '#FFFFFF',
+    fontSize: 40,
     fontWeight: '700',
   },
   logoManu: {
-    fontSize: 32,
+    fontSize: 40,
     fontWeight: '700',
-    color: '#000',
+    color: '#FFFFFF',
     marginTop: -8,
   },
-  greeting: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#2D5016',
-    marginBottom: 40,
-  },
-  form: {
-    marginBottom: 32,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8E8E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000',
-  },
-  iconButton: {
-    padding: 8,
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#666',
-  },
-  eyeIcon: {
-    fontSize: 20,
-  },
-  forgotPassword: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 8,
-    textDecorationLine: 'underline',
-  },
   loginButton: {
+    width: '100%',
     backgroundColor: '#2D5016',
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   loginButtonText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  footer: {
-    flexDirection: 'row',
+  registerButton: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    height: 56,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  createAccountText: {
-    fontSize: 14,
+  registerButtonText: {
     color: '#2D5016',
+    fontSize: 16,
     fontWeight: '600',
   },
 });
-
-export default Login;

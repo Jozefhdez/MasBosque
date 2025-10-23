@@ -246,7 +246,6 @@ const ModifyProfile = ({ navigation }: Props) => {
         <View style={styles.divider} />
 
         {/* Sección de cambio de contraseña */}
-        <Text style={styles.passwordSectionTitle}>Cambiar contraseña</Text>
 
         {/* Contraseña anterior */}
         <View style={styles.inputContainer}>

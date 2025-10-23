@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
-const Register = () => {
+export default function Register() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -26,24 +26,19 @@ const Register = () => {
       alert('Debes aceptar los términos y condiciones');
       return;
     }
-    // Aquí implementarías la lógica de registro
     console.log('Registro:', { firstName, lastName, email, password });
-    // Después de un registro exitoso, navegar a CompleteProfile
-    navigation.navigate('CompleteProfile');
+    router.push('/completeProfile');
   };
 
   const handleLoginRedirect = () => {
-    // Navegar a la pantalla de login
-    navigation.navigate('Login');
+    router.push('/login');
   };
 
   const handleTermsPress = () => {
-    // Abrir términos y condiciones
     console.log('Abrir Acuerdo de usuario');
   };
 
   const handlePrivacyPress = () => {
-    // Abrir política de privacidad
     console.log('Abrir Política de privacidad');
   };
 
@@ -57,7 +52,6 @@ const Register = () => {
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo y título */}
         <View style={styles.header}>
           <Text style={styles.logo}>
             <Text style={styles.logoPlus}>+</Text>
@@ -66,9 +60,7 @@ const Register = () => {
           <Text style={styles.logoManu}>Manu</Text>
         </View>
 
-        {/* Formulario */}
         <View style={styles.form}>
-          {/* Campo de nombre(s) */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Nombre(s)</Text>
             <View style={styles.inputWrapper}>
@@ -91,7 +83,6 @@ const Register = () => {
             </View>
           </View>
 
-          {/* Campo de apellido */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Apellido</Text>
             <View style={styles.inputWrapper}>
@@ -114,7 +105,6 @@ const Register = () => {
             </View>
           </View>
 
-          {/* Campo de correo */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Correo</Text>
             <View style={styles.inputWrapper}>
@@ -139,7 +129,6 @@ const Register = () => {
             </View>
           </View>
 
-          {/* Campo de contraseña */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.inputWrapper}>
@@ -162,7 +151,6 @@ const Register = () => {
             </View>
           </View>
 
-          {/* Checkbox de términos y condiciones */}
           <TouchableOpacity
             style={styles.termsContainer}
             onPress={() => setAcceptedTerms(!acceptedTerms)}
@@ -184,12 +172,10 @@ const Register = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Botón de registro */}
         <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
           <Text style={styles.registerButtonText}>Registrarse</Text>
         </TouchableOpacity>
 
-        {/* Ya tienes cuenta */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Ya tienes cuenta? </Text>
           <TouchableOpacity onPress={handleLoginRedirect}>
@@ -199,7 +185,7 @@ const Register = () => {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -334,5 +320,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
-export default Register;
