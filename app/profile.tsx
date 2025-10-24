@@ -12,63 +12,62 @@ import {
 import { useRouter } from 'expo-router';
 
 const Profile = () => {
-  const router = useRouter();
+    const router = useRouter();
 
-  const handleBack = () => {
-    router.back();
-  };
+    const handleBack = () => {
+        router.back();
+    };
 
-  const handleEditInfo = () => {
-    router.push('/modifyProfile');
-  };
+    const handleEditInfo = () => {
+        router.push('/modifyProfile');
+    };
 
-  const handleCloseSession = () => {
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro que deseas cerrar sesión?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Cerrar sesión',
-          onPress: () => {
-            console.log('Sesión cerrada');
-            router.replace('/login');
-          },
-          style: 'destructive',
-        },
-      ]
-    );
-  };
+    const handleCloseSession = () => {
+        Alert.alert(
+          'Cerrar sesión',
+          '¿Estás seguro que deseas cerrar sesión?',
+          [
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+            },
+            {
+              text: 'Cerrar sesión',
+              onPress: () => {
+                console.log('Sesión cerrada');
+                router.replace('/login');
+              },
+              style: 'destructive',
+            },
+          ]
+        );
+    };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      'Eliminar cuenta',
-      '¿Estás seguro? Esta acción no se puede deshacer.',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Eliminar',
-          onPress: () => {
-            console.log('Cuenta eliminada');
-            router.replace('/login');
-          },
-          style: 'destructive',
-        },
-      ]
-    );
-  };
+    const handleDeleteAccount = () => {
+        Alert.alert(
+          'Eliminar cuenta',
+          '¿Estás seguro? Esta acción no se puede deshacer.',
+          [
+            {
+              text: 'Cancelar',
+              style: 'cancel',
+            },
+            {
+              text: 'Eliminar',
+              onPress: () => {
+                console.log('Cuenta eliminada');
+                router.replace('/login');
+              },
+              style: 'destructive',
+            },
+          ]
+        );
+    };
 
-  return (
+    return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
-      {/* Header con botón de retroceso */}
+      {/* Botón de retroceso */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
@@ -121,105 +120,107 @@ const Profile = () => {
         </TouchableOpacity>
       </ScrollView>
     </View>
-  );
+    );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: '#000',
-  },
-  scrollContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  infoContainer: {
-    width: '100%',
-    marginBottom: 40,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#000',
-    marginBottom: 12,
-  },
-  allergyItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 6,
-  },
-  primaryButton: {
-    width: '100%',
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dangerButton: {
-    width: '100%',
-    backgroundColor: '#A63C3C',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dangerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  outlineButton: {
-    width: '100%',
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#A63C3C',
-  },
-  outlineButtonText: {
-    color: '#A63C3C',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+    container: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+    },
+    header: {
+        paddingHorizontal: 20,
+        paddingTop: 60,
+        paddingBottom: 20,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+    },
+    backIcon: {
+        fontSize: 40,
+        color: '#000',
+    },
+    scrollContainer: {
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+        alignItems: 'center',
+    },
+    avatarContainer: {
+        marginBottom: 24,
+    },
+    avatar: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+    },
+    userName: {
+        fontSize: 25,
+        fontWeight: '700',
+        color: '#000',
+        textAlign: 'center',
+        marginBottom: 32,
+    },
+    infoContainer: {
+        width: '100%',
+        marginBottom: 40,
+    },
+    infoText: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#000',
+        marginBottom: 12,
+    },
+    allergyItem: {
+        fontSize: 18,
+        fontWeight: '500',
+        color: '#666',
+        marginBottom: 6,
+    },
+    primaryButton: {
+        width: '100%',
+        backgroundColor: '#2D5016',
+        borderRadius: 12,
+        height: 56,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    primaryButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    dangerButton: {
+        width: '100%',
+        backgroundColor: '#A63C3C',
+        borderRadius: 12,
+        height: 56,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    dangerButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    outlineButton: {
+        width: '100%',
+        backgroundColor: 'transparent',
+        borderRadius: 12,
+        height: 56,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#A63C3C',
+    },
+    outlineButtonText: {
+        color: '#A63C3C',
+        fontSize: 16,
+        fontWeight: '600',
+    },
 });
 
 export default Profile;

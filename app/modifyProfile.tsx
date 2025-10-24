@@ -9,29 +9,28 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../App';
+import { useRouter } from 'expo-router';
 
-type ModifyProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ModifyProfile'>;
+const ModifyProfile = () => {
+    const [firstName, setFirstName] = useState('Juan Alfredo');
+      const [lastName, setLastName] = useState('Peréz Gonzalez');
+      const [email, setEmail] = useState('juafred@gmail.com');
+      const [allergies, setAllergies] = useState<Allergy[]>([
+        { id: '1', value: 'Ibuprofeno' },
+        { id: '2', value: 'Ateips' },
+        { id: '3', value: 'Epinefrina' },
+      ]);
+  const router = useRouter();
 
-type Props = {
-  navigation: ModifyProfileScreenNavigationProp;
-};
+  const handleBack = () => {
+    router.back();
+  };
 
 type Allergy = {
   id: string;
   value: string;
 };
 
-const ModifyProfile = ({ navigation }: Props) => {
-  const [firstName, setFirstName] = useState('Juan Alfredo');
-  const [lastName, setLastName] = useState('Peréz Gonzalez');
-  const [email, setEmail] = useState('juafred@gmail.com');
-  const [allergies, setAllergies] = useState<Allergy[]>([
-    { id: '1', value: 'Ibuprofeno' },
-    { id: '2', value: 'Ateips' },
-    { id: '3', value: 'Epinefrina' },
-  ]);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -40,10 +39,6 @@ const ModifyProfile = ({ navigation }: Props) => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const handleBack = () => {
-    navigation.goBack();
-  };
 
   const handleAddPhoto = () => {
     Alert.alert('Agregar foto', 'Funcionalidad de cámara/galería próximamente');
@@ -79,7 +74,7 @@ const ModifyProfile = ({ navigation }: Props) => {
 
     console.log('Guardar cambios:', { firstName, lastName, email, allergies: validAllergies });
     Alert.alert('Éxito', 'Cambios guardados correctamente', [
-      { text: 'OK', onPress: () => navigation.goBack() }
+      { text: 'OK', onPress: () => router.back() }
     ]);
   };
 
@@ -120,7 +115,7 @@ const ModifyProfile = ({ navigation }: Props) => {
 
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
       >
         {/* Avatar con botón de editar */}
         <TouchableOpacity

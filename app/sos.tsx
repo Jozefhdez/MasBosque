@@ -9,191 +9,210 @@ import {
   PanResponder,
 } from 'react-native';
 import Svg, { Polygon, Circle, Defs, Filter, FeGaussianBlur, FeOffset } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 
 export default function SOS() {
-  const [isSOSActive, setIsSOSActive] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
+    const router = useRouter();
+    const [isSOSActive, setIsSOSActive] = useState(false);
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const slideAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    if (!isSOSActive) {
-      const pulse = Animated.loop(
+    useEffect(() => {
+        if (!isSOSActive) {
+          const pulse = Animated.loop(
+            Animated.sequence([
+              Animated.timing(pulseAnim, {
+                toValue: 1.1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+              Animated.timing(pulseAnim, {
+                toValue: 1,
+                duration: 1000,
+                useNativeDriver: true,
+              }),
+            ])
+          );
+          pulse.start();
+          return () => pulse.stop();
+        }
+    }, [isSOSActive]);
+
+    const handleSOSPress = () => {
+        if (isSOSActive) return;
+
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 1000,
+          Animated.timing(scaleAnim, {
+            toValue: 0.95,
+            duration: 100,
             useNativeDriver: true,
           }),
-          Animated.timing(pulseAnim, {
+          Animated.timing(scaleAnim, {
             toValue: 1,
-            duration: 1000,
+            duration: 100,
             useNativeDriver: true,
           }),
-        ])
-      );
-      pulse.start();
-      return () => pulse.stop();
-    }
-  }, [isSOSActive]);
+        ]).start();
 
-  const handleSOSPress = () => {
-    if (isSOSActive) return;
+        setIsSOSActive(true);
+    };
 
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    const handleProfile =()=>{
+      router.push('/profile');
+    };
 
-    setIsSOSActive(true);
-  };
+    const handleBack = () => {
+      router.back();
+    };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dx > 0 && gestureState.dx < 200) {
-          slideAnim.setValue(gestureState.dx);
+    const panResponder = useRef(
+        PanResponder.create({
+          onStartShouldSetPanResponder: () => true,
+          onMoveShouldSetPanResponder: () => true,
+          onPanResponderMove: (_, gestureState) => {
+            if (gestureState.dx > 0 && gestureState.dx < 200) {
+              slideAnim.setValue(gestureState.dx);
+            }
+          },
+          onPanResponderRelease: (_, gestureState) => {
+            if (gestureState.dx > 150) {
+              Animated.timing(slideAnim, {
+                toValue: 220,
+                duration: 200,
+                useNativeDriver: true,
+              }).start(() => {
+                setIsSOSActive(false);
+                slideAnim.setValue(0);
+              });
+            } else {
+              Animated.spring(slideAnim, {
+                toValue: 0,
+                useNativeDriver: true,
+              }).start();
+            }
+          },
+        })
+    ).current;
+
+    // Función para calcular puntos del hexágono
+    const getHexagonPoints = (centerX: number, centerY: number, radius: number) => {
+        const points = [];
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i - Math.PI / 2; // Rotado 90° para punta arriba
+          const x = centerX + radius * Math.cos(angle);
+          const y = centerY + radius * Math.sin(angle);
+          points.push(`${x},${y}`);
         }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx > 150) {
-          Animated.timing(slideAnim, {
-            toValue: 220,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            setIsSOSActive(false);
-            slideAnim.setValue(0);
-          });
-        } else {
-          Animated.spring(slideAnim, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    })
-  ).current;
+        return points.join(' ');
+    };
 
-  // Función para calcular puntos del hexágono (orientación con punta arriba)
-  const getHexagonPoints = (centerX: number, centerY: number, radius: number) => {
-    const points = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI / 3) * i - Math.PI / 2; // Rotado 90° para punta arriba
-      const x = centerX + radius * Math.cos(angle);
-      const y = centerY + radius * Math.sin(angle);
-      points.push(`${x},${y}`);
-    }
-    return points.join(' ');
-  };
+    const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
-  const AnimatedSvg = Animated.createAnimatedComponent(Svg);
+    return (
+      <View style={[styles.container, isSOSActive && styles.containerActive]}>
+        <StatusBar
+          barStyle={isSOSActive ? "light-content" : "dark-content"}
+          backgroundColor={isSOSActive ? "#B73239" : "#FFFFFF"}
+        />
+        {/* Botón de retroceso */}
+        <View style={styles.header}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
+        </View>
 
-  return (
-    <View style={[styles.container, isSOSActive && styles.containerActive]}>
-      <StatusBar
-        barStyle={isSOSActive ? "light-content" : "dark-content"}
-        backgroundColor={isSOSActive ? "#B73239" : "#FFFFFF"}
-      />
+        {/* SOS Title */}
+        <Text style={[styles.sosTitle, isSOSActive && styles.sosTitleActive]}>
+          SOS
+        </Text>
 
-      {/* SOS Title */}
-      <Text style={[styles.sosTitle, isSOSActive && styles.sosTitleActive]}>
-        SOS
-      </Text>
-
-      {/* SOS Button - Hexagon Shape */}
-      <View style={styles.sosContainer}>
-        <Animated.View
-          style={[
-            styles.hexagonWrapper,
-            { transform: [{ scale: isSOSActive ? 1 : pulseAnim }] }
-          ]}
-        >
-          <TouchableOpacity
-            onPress={handleSOSPress}
-            activeOpacity={0.8}
-            disabled={isSOSActive}
-            style={styles.hexagonButton}
+        {/* SOS Button - Hexagon Shape */}
+        <View style={styles.sosContainer}>
+          <Animated.View
+            style={[
+              styles.hexagonWrapper,
+              { transform: [{ scale: isSOSActive ? 1 : pulseAnim }] }
+            ]}
           >
-            <AnimatedSvg width="300" height="300" viewBox="0 0 300 300">
-              <Defs>
-                <Filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <FeOffset result="offOut" in="SourceAlpha" dx="0" dy="8" />
-                  <FeGaussianBlur result="blurOut" in="offOut" stdDeviation="15" />
-                </Filter>
-              </Defs>
+            <TouchableOpacity
+              onPress={handleSOSPress}
+              activeOpacity={0.8}
+              disabled={isSOSActive}
+              style={styles.hexagonButton}
+            >
+              <AnimatedSvg width="300" height="300" viewBox="0 0 300 300">
+                <Defs>
+                  <Filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <FeOffset result="offOut" in="SourceAlpha" dx="0" dy="8" />
+                    <FeGaussianBlur result="blurOut" in="offOut" stdDeviation="15" />
+                  </Filter>
+                </Defs>
 
-              {/* Sombra del hexágono */}
-              <Polygon
-                points={getHexagonPoints(150, 150, 120)}
-                fill="rgba(0,0,0,0.25)"
-                filter="url(#shadow)"
-              />
+                {/* Sombra del hexágono */}
+                <Polygon
+                  points={getHexagonPoints(150, 150, 120)}
+                  fill="rgba(0,0,0,0.25)"
+                  filter="url(#shadow)"
+                />
 
-              {/* Hexágono principal */}
-              <Polygon
-                points={getHexagonPoints(150, 150, 120)}
-                fill={isSOSActive ? "#8B2630" : "#B73239"}
-              />
+                {/* Hexágono principal */}
+                <Polygon
+                  points={getHexagonPoints(150, 150, 120)}
+                  fill={isSOSActive ? "#8B2630" : "#B73239"}
+                />
 
-              {/* Círculos concéntricos */}
-              <Circle cx="150" cy="150" r="85" fill="none" stroke="#FFFFFF" strokeWidth="4" />
-              <Circle cx="150" cy="150" r="55" fill="none" stroke="#FFFFFF" strokeWidth="4" />
-              <Circle cx="150" cy="150" r="22" fill="none" stroke="#FFFFFF" strokeWidth="4" />
-            </AnimatedSvg>
-          </TouchableOpacity>
-        </Animated.View>
+                {/* Círculos concéntricos */}
+                <Circle cx="150" cy="150" r="85" fill="none" stroke="#FFFFFF" strokeWidth="4" />
+                <Circle cx="150" cy="150" r="55" fill="none" stroke="#FFFFFF" strokeWidth="4" />
+                <Circle cx="150" cy="150" r="22" fill="none" stroke="#FFFFFF" strokeWidth="4" />
+              </AnimatedSvg>
+            </TouchableOpacity>
+          </Animated.View>
 
-        {isSOSActive && (
-          <Text style={styles.helpText}>Pidiendo ayuda</Text>
+          {isSOSActive && (
+            <Text style={styles.helpText}>Pidiendo ayuda</Text>
+          )}
+        </View>
+
+        {/* Bottom Section */}
+        {!isSOSActive ? (
+          <View style={styles.bottomSection}>
+            <View style={styles.statusContainer}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusText}>Conectado a la red</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.userCard}
+              onPress={handleProfile} // <- función que se ejecuta al presionar
+            >
+              <View style={styles.userAvatar}>
+                <Text style={styles.userAvatarText}>JP</Text>
+              </View>
+              <Text style={styles.userName}>Juan Alfredo Peréz</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.sliderContainer}>
+            <View style={styles.sliderTrack}>
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={[
+                  styles.sliderThumb,
+                  {
+                    transform: [{ translateX: slideAnim }],
+                  },
+                ]}
+              >
+                <View style={styles.sliderCircle} />
+              </Animated.View>
+              <Text style={styles.sliderText}>Desliza para cancelar</Text>
+            </View>
+          </View>
         )}
       </View>
-
-      {/* Bottom Section */}
-      {!isSOSActive ? (
-        <View style={styles.bottomSection}>
-          <View style={styles.statusContainer}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Conectado a la red</Text>
-          </View>
-
-          <View style={styles.userCard}>
-            <View style={styles.userAvatar}>
-              <Text style={styles.userAvatarText}>JP</Text>
-            </View>
-            <Text style={styles.userName}>Juan Alfredo Peréz</Text>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.sliderContainer}>
-          <View style={styles.sliderTrack}>
-            <Animated.View
-              {...panResponder.panHandlers}
-              style={[
-                styles.sliderThumb,
-                {
-                  transform: [{ translateX: slideAnim }],
-                },
-              ]}
-            >
-              <View style={styles.sliderCircle} />
-            </Animated.View>
-            <Text style={styles.sliderText}>Desliza para cancelar</Text>
-          </View>
-        </View>
-      )}
-    </View>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
@@ -203,6 +222,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 80,
   },
+    header: {
+      width: '100%',
+      flexDirection: 'row',       // Para que los elementos vayan en fila
+      alignItems: 'center',       // Centra verticalmente el botón
+      justifyContent: 'flex-start', // Lo alinea a la izquierda
+      paddingHorizontal: '8%',
+      paddingTop: '5%',
+      paddingBottom: 20,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'flex-start',   // Se asegura que quede hacia la izquierda
+    },
+    backIcon: {
+      fontSize: 28,
+      color: '#000',
+    },
+
   containerActive: {
     backgroundColor: '#B73239',
   },

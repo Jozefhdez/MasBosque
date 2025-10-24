@@ -21,6 +21,10 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const handleBack = () => {
+      router.back();
+    };
+
   const handleRegister = () => {
     if (!acceptedTerms) {
       alert('Debes aceptar los términos y condiciones');
@@ -48,6 +52,12 @@ export default function Register() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
+      {/* Header con botón de retroceso */}
+        <View style={styles.headerLogo}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+        </View>
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -192,6 +202,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
+    headerLogo: {
+      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      paddingHorizontal: '8%',
+      paddingTop: 60,
+      paddingBottom: 20,
+    },
+
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+    },
+
+    backIcon: {
+      fontSize: 28,
+      color: '#000',
+    },
+
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,

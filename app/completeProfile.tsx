@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  StatusBar,
   ScrollView,
   Alert,
 } from 'react-native';
@@ -25,6 +24,9 @@ export default function CompleteProfile() {
     { id: '3', value: 'Epinefrina' },
   ]);
 
+const handleBack = () => {
+      router.back();
+    };
   const handleAddPhoto = () => {
     Alert.alert('Agregar foto', 'Funcionalidad de cámara/galería próximamente');
   };
@@ -58,6 +60,12 @@ export default function CompleteProfile() {
 
   return (
     <View style={styles.container}>
+    {/* Header con botón de retroceso */}
+      <View style={styles.headerLogo}>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -131,6 +139,26 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
+  headerLogo: {
+    width: '100%',
+    flexDirection: 'row',       // Para que los elementos vayan en fila
+    alignItems: 'center',       // Centra verticalmente el botón
+    justifyContent: 'flex-start', // Lo alinea a la izquierda
+    paddingHorizontal: '8%',
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',   // Se asegura que quede hacia la izquierda
+  },
+  backIcon: {
+    fontSize: 28,
+    color: '#000',
+  },
+
   header: {
     backgroundColor: '#2C2C2C',
     paddingTop: 60,
