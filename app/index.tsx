@@ -1,18 +1,5 @@
-import { Text, View, Button } from "react-native";
-import { router } from "expo-router";
+import { Redirect } from 'expo-router';
 
 export default function Index() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Bienvenido</Text>
-      <Button title="Iniciar sesión" onPress={() => router.push("./login")} />
-      <Button title="Registrar" onPress={() => router.push("./register")} />
-    </View>
-  );
+  return <Redirect href="/login" />;
 }
