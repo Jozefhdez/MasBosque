@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import Svg, { Polygon, Circle, Defs, Filter, FeGaussianBlur, FeOffset } from 'react-native-svg';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from './lib/supabaseClient'
+
 
 export default function SOS() {
     const router = useRouter();
@@ -203,7 +204,7 @@ export default function SOS() {
               <View style={styles.userAvatar}>
                 <Text style={styles.userAvatarText}>JP</Text>
               </View>
-              <Text style={styles.userName}>{profile.name}</Text>
+              <Text style={styles.userName}>{profile?.name}</Text>
             </TouchableOpacity>
           </View>
         ) : (

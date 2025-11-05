@@ -11,7 +11,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '..\lib\supabaseClient'
+import { supabase } from './lib/supabaseClient'
+
 
 export default function Register() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function Register() {
       router.back();
     };
 
-    const handleSignUp = async () => {
+    const handleRegister = async () => {
         setError('')
         const { data, error } = await supabase.auth.signUp({
           email,
