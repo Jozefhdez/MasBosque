@@ -204,7 +204,7 @@ export default function SOS() {
               <View style={styles.userAvatar}>
                 <Text style={styles.userAvatarText}>JP</Text>
               </View>
-              <Text style={styles.userName}>{profile?.name}</Text>
+              <Text style={styles.userName}>{profile?.name || user?.name || 'Usuario'}</Text>
             </TouchableOpacity>
           </View>
         ) : (
