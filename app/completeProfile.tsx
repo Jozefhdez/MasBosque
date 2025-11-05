@@ -91,7 +91,7 @@ const handleBack = () => {
 
         <View style={styles.allergiesContainer}>
           {allergies.map((allergy) => (
-            <View key={allergy.id} style={styles.allergyRow}>
+            <View style={styles.allergyRow}>
               <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => handleRemoveAllergy(allergy.id)}

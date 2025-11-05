@@ -29,17 +29,15 @@ const validatePassword = (password: string) =>
 export default function Register() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
-  const [lastName,  setLastName]  = useState('');
-  const [email,     setEmail]     = useState('');
-  const [password,  setPassword]  = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [allergies, setAllergies] = useState('');
-  const [error,     setError]     = useState('');
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => router.back();
 
   const handleTermsPress = () => {
     console.log('Abrir Acuerdo de usuario');
@@ -52,37 +50,12 @@ export default function Register() {
   const handleSignUp = async () => {
     setError('');
 
-    if (!acceptedTerms) {
-      alert('Debes aceptar los términos y condiciones');
-      return;
-    }
-
-    if (!validateName(firstName)) {
-      alert('El nombre debe contener solo letras y no estar vacío.');
-      return;
-    }
-
-    if (!validateName(lastName)) {
-      alert('El apellido debe contener solo letras y no estar vacío.');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      alert('El correo electrónico no es válido.');
-      return;
-    }
-
-    if (!validatePassword(password)) {
-      alert(
-        'La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.'
-      );
-      return;
-    }
-
-    if (!allergies.trim()) {
-      alert('Por favor, ingresa tus alergias. Si no tienes ninguna, escribe "Ninguna".');
-      return;
-    }
+    if (!acceptedTerms) return alert('Debes aceptar los términos y condiciones');
+    if (!validateName(firstName)) return alert('El nombre debe contener solo letras y no estar vacío.');
+    if (!validateName(lastName)) return alert('El apellido debe contener solo letras y no estar vacío.');
+    if (!validateEmail(email)) return alert('El correo electrónico no es válido.');
+    if (!validatePassword(password)) return alert('La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.');
+    if (!allergies.trim()) return alert('Por favor, ingresa tus alergias. Si no tienes ninguna, escribe "Ninguna".');
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -97,35 +70,43 @@ export default function Register() {
       }
 
       if (data?.user) {
-        const { data: userData, error: userError } = await supabase
+        const { data: insertedUser, error: userError } = await supabase
           .from('users')
           .insert([
             {
-              id: data.user.id, 
+              id: data.user.id,
               name: firstName.trim(),
               last_name: lastName.trim(),
               role: 'user',
-              email: email.trim(),
-              created_at: new Date().toISOString(),
             },
           ])
           .select()
           .single();
 
         if (userError) {
+          console.error('Error inserting user row:', userError);
           throw userError;
         }
 
-        const { error: allergiesError } = await supabase.from('allergies').insert([
-          {
-            profile_id: userData.id,
-            description: allergies.trim(),
-          },
-        ]);
+        console.debug('Inserted user row:', insertedUser);
+
+        const { data: insertedAllergy, error: allergiesError } = await supabase
+          .from('allergies')
+          .insert([
+            {
+              profile_id: insertedUser.id,
+              description: allergies.trim(),
+            },
+          ])
+          .select()
+          .single();
 
         if (allergiesError) {
+          console.error('Error inserting allergies row:', allergiesError);
           throw allergiesError;
         }
+
+        console.debug('Inserted allergy row:', insertedAllergy);
       }
 
       alert('Registro exitoso.');
@@ -137,10 +118,9 @@ export default function Register() {
     }
   };
 
-  const handleLoginRedirect = () => {
-    router.push('/login');
-  };
+  const handleLoginRedirect = () => router.push('/login');
 
+  const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
   return (
     <KeyboardAvoidingView
       style={styles.container}

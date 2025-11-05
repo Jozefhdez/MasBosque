@@ -60,15 +60,27 @@ export default function SOS() {
         setIsSOSActive(true);
     };
 
-    const [user, setUser] = useState(null)
-    const [profile, setProfile] = useState(null)
+    type UserProfile = {
+      name?: string;
+      [key: string]: any;
+    };
+
+    const [user, setUser] = useState<any | null>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
     const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user ?? null;
+      setUser(user);
 
       if (user) {
-        const { data } = await supabase.from('users').select('*').eq('user_id', user.id).single()
-        setProfile(data)
+        const { data: profileData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        if (!error) {
+          setProfile(profileData as UserProfile);
+        }
       }
     }
 
@@ -199,7 +211,7 @@ export default function SOS() {
 
             <TouchableOpacity
               style={styles.userCard}
-              onPress={handleProfile} // <- función que se ejecuta al presionar
+              onPress={handleProfile} 
             >
               <View style={styles.userAvatar}>
                 <Text style={styles.userAvatarText}>JP</Text>
@@ -238,9 +250,9 @@ const styles = StyleSheet.create({
   },
     header: {
       width: '100%',
-      flexDirection: 'row',       // Para que los elementos vayan en fila
-      alignItems: 'center',       // Centra verticalmente el botón
-      justifyContent: 'flex-start', // Lo alinea a la izquierda
+      flexDirection: 'row',     
+      alignItems: 'center',       
+      justifyContent: 'flex-start', 
       paddingHorizontal: '8%',
       paddingTop: '5%',
       paddingBottom: 20,
@@ -249,7 +261,7 @@ const styles = StyleSheet.create({
       width: 40,
       height: 40,
       justifyContent: 'center',
-      alignItems: 'flex-start',   // Se asegura que quede hacia la izquierda
+      alignItems: 'flex-start',  
     },
     backIcon: {
       fontSize: 28,
