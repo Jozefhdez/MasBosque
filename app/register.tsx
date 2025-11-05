@@ -32,6 +32,7 @@ export default function Register() {
   const [lastName,  setLastName]  = useState('');
   const [email,     setEmail]     = useState('');
   const [password,  setPassword]  = useState('');
+  const [allergies, setAllergies] = useState('');
   const [error,     setError]     = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -51,31 +52,26 @@ export default function Register() {
   const handleSignUp = async () => {
     setError('');
 
-    // Validar términos
     if (!acceptedTerms) {
       alert('Debes aceptar los términos y condiciones');
       return;
     }
 
-    // Validar nombre
     if (!validateName(firstName)) {
       alert('El nombre debe contener solo letras y no estar vacío.');
       return;
     }
 
-    // Validar apellido
     if (!validateName(lastName)) {
       alert('El apellido debe contener solo letras y no estar vacío.');
       return;
     }
 
-    // Validar correo
     if (!validateEmail(email)) {
       alert('El correo electrónico no es válido.');
       return;
     }
 
-    // Validar contraseña
     if (!validatePassword(password)) {
       alert(
         'La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.'
@@ -83,8 +79,12 @@ export default function Register() {
       return;
     }
 
+    if (!allergies.trim()) {
+      alert('Por favor, ingresa tus alergias. Si no tienes ninguna, escribe "Ninguna".');
+      return;
+    }
+
     try {
-      // Registro en Supabase Auth (Supabase encripta la contraseña)
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -96,16 +96,30 @@ export default function Register() {
         return;
       }
 
-      // Guardar datos adicionales en tu tabla `users` (si existe)
       if (data?.user) {
-        await supabase.from('users').insert([
+        const { data: userData, error: userError } = await supabase.from('users').insert([
           {
             user_id: data.user.id,
             name: firstName.trim(),
             last_name: lastName.trim(),
             role: 'user',
           },
+        ]).select().single();
+
+        if (userError) {
+          throw userError;
+        }
+
+        const { error: allergiesError } = await supabase.from('allergies').insert([
+          {
+            profile_id: data.user.id,
+            description: allergies.trim(),
+          },
         ]);
+
+        if (allergiesError) {
+          throw allergiesError;
+        }
       }
 
       alert('Registro exitoso.');
@@ -184,6 +198,29 @@ export default function Register() {
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={() => setLastName('')}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Alergias <Text style={styles.required}>(requerido)</Text></Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="Escribe tus alergias o 'Ninguna'"
+                placeholderTextColor="#999"
+                value={allergies}
+                onChangeText={setAllergies}
+                multiline={true}
+                numberOfLines={3}
+              />
+              {allergies.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setAllergies('')}
                 >
                   <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
@@ -277,6 +314,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F0',
+  },
+  required: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '400',
   },
   headerLogo: {
     width: '100%',
