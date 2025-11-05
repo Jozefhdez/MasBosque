@@ -101,11 +101,12 @@ export default function Register() {
           .from('users')
           .insert([
             {
-              user_id: data.user.id,
+              id: data.user.id, 
               name: firstName.trim(),
               last_name: lastName.trim(),
               role: 'user',
-              created_at: new Date().toISOString()
+              email: email.trim(),
+              created_at: new Date().toISOString(),
             },
           ])
           .select()
@@ -115,14 +116,12 @@ export default function Register() {
           throw userError;
         }
 
-        const { error: allergiesError } = await supabase
-          .from('allergies')
-          .insert([
-            {
-              profile_id: userData.id, 
-              description: allergies.trim(),
-            },
-          ]);
+        const { error: allergiesError } = await supabase.from('allergies').insert([
+          {
+            profile_id: userData.id,
+            description: allergies.trim(),
+          },
+        ]);
 
         if (allergiesError) {
           throw allergiesError;
