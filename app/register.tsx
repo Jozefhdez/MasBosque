@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '..\lib\supabaseClient'
 
 export default function Register() {
   const router = useRouter();
@@ -27,15 +27,31 @@ export default function Register() {
       router.back();
     };
 
-  const handleRegister = () => {
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) setError(error.message)
-    if (!acceptedTerms) {
-    alert('Debes aceptar los términos y condiciones');
-    return;
-    }
-    router.push('/completeProfile');
-  };
+    const handleSignUp = async () => {
+        setError('')
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        })
+        if (error) {
+            setError(error.message)
+        } else {
+          // Guarda datos adicionales en tu tabla `users`
+          if (data.user) {
+            await supabase.from('users').insert([
+              {
+                user_id: data.user.id,
+                name,
+                last_name: lastName,
+                role: 'user',
+              },
+            ])
+          }
+          router.push('/completeProfile');
+          }
+        }
+
+
 
   const handleLoginRedirect = () => {
     router.push('/login');

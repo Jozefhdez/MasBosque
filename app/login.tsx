@@ -11,7 +11,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '..\lib\supabaseClient'
 
 export default function Login() {
   const router = useRouter();
