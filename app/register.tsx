@@ -11,51 +11,33 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from './lib/supabaseClient'
+import { supabase } from './lib/supabaseClient';
 
+const validateName = (name: string) =>
+  /^[A-Za-z]+$/.test(name.trim()) && name.trim() !== '';
+
+const validateEmail = (email: string) =>
+  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim()) &&
+  email.trim() !== '';
+
+const validatePassword = (password: string) =>
+  password.length >= 8 &&
+  /[A-Z]/.test(password) &&
+  /[!@#$%^&*]/.test(password) &&
+  password.trim() !== '';
 
 export default function Register() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('')
+  const [lastName,  setLastName]  = useState('');
+  const [email,     setEmail]     = useState('');
+  const [password,  setPassword]  = useState('');
+  const [error,     setError]     = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleBack = () => {
-      router.back();
-    };
-
-    const handleRegister = async () => {
-        setError('')
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-        if (error) {
-            setError(error.message)
-        } else {
-          // Guarda datos adicionales en tu tabla `users`
-          if (data.user) {
-            await supabase.from('users').insert([
-              {
-                user_id: data.user.id,
-                name,
-                last_name: lastName,
-                role: 'user',
-              },
-            ])
-          }
-          router.push('/completeProfile');
-          }
-        }
-
-
-
-  const handleLoginRedirect = () => {
-    router.push('/login');
+    router.back();
   };
 
   const handleTermsPress = () => {
@@ -66,18 +48,92 @@ export default function Register() {
     console.log('Abrir Política de privacidad');
   };
 
+  const handleSignUp = async () => {
+    setError('');
+
+    // Validar términos
+    if (!acceptedTerms) {
+      alert('Debes aceptar los términos y condiciones');
+      return;
+    }
+
+    // Validar nombre
+    if (!validateName(firstName)) {
+      alert('El nombre debe contener solo letras y no estar vacío.');
+      return;
+    }
+
+    // Validar apellido
+    if (!validateName(lastName)) {
+      alert('El apellido debe contener solo letras y no estar vacío.');
+      return;
+    }
+
+    // Validar correo
+    if (!validateEmail(email)) {
+      alert('El correo electrónico no es válido.');
+      return;
+    }
+
+    // Validar contraseña
+    if (!validatePassword(password)) {
+      alert(
+        'La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.'
+      );
+      return;
+    }
+
+    try {
+      // Registro en Supabase Auth (Supabase encripta la contraseña)
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      if (error) {
+        setError(error.message);
+        alert(error.message);
+        return;
+      }
+
+      // Guardar datos adicionales en tu tabla `users` (si existe)
+      if (data?.user) {
+        await supabase.from('users').insert([
+          {
+            user_id: data.user.id,
+            name: firstName.trim(),
+            last_name: lastName.trim(),
+            role: 'user',
+          },
+        ]);
+      }
+
+      alert('Registro exitoso.');
+      router.push('/completeProfile');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Error inesperado');
+      alert('Ocurrió un error inesperado. Intenta de nuevo.');
+    }
+  };
+
+  const handleLoginRedirect = () => {
+    router.push('/login');
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
-      {/* Header con botón de retroceso */}
-        <View style={styles.headerLogo}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-        </View>
+
+      <View style={styles.headerLogo}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -193,24 +249,24 @@ export default function Register() {
               He leído y estoy de acuerdo con el{' '}
               <Text style={styles.termsLink} onPress={handleTermsPress}>
                 Acuerdo de usuario
-              </Text>
-              {' '}y{' '}
+              </Text>{' '}
+              y{' '}
               <Text style={styles.termsLink} onPress={handlePrivacyPress}>
                 Política de privacidad
               </Text>
             </Text>
           </TouchableOpacity>
-        </View>
 
-        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-          <Text style={styles.registerButtonText}>Registrarse</Text>
-        </TouchableOpacity>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Ya tienes cuenta? </Text>
-          <TouchableOpacity onPress={handleLoginRedirect}>
-            <Text style={styles.loginText}>Iniciar sesión</Text>
+          <TouchableOpacity style={styles.registerButton} onPress={handleSignUp}>
+            <Text style={styles.registerButtonText}>Registrarse</Text>
           </TouchableOpacity>
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Ya tienes cuenta? </Text>
+            <TouchableOpacity onPress={handleLoginRedirect}>
+              <Text style={styles.loginText}>Iniciar sesión</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -222,28 +278,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
-    headerLogo: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      paddingHorizontal: '8%',
-      paddingTop: 60,
-      paddingBottom: 20,
-    },
-
-    backButton: {
-      width: 40,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-    },
-
-    backIcon: {
-      fontSize: 28,
-      color: '#000',
-    },
-
+  headerLogo: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: '8%',
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  backIcon: {
+    fontSize: 28,
+    color: '#000',
+  },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
