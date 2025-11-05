@@ -97,25 +97,32 @@ export default function Register() {
       }
 
       if (data?.user) {
-        const { data: userData, error: userError } = await supabase.from('users').insert([
-          {
-            user_id: data.user.id,
-            name: firstName.trim(),
-            last_name: lastName.trim(),
-            role: 'user',
-          },
-        ]).select().single();
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .insert([
+            {
+              user_id: data.user.id,
+              name: firstName.trim(),
+              last_name: lastName.trim(),
+              role: 'user',
+              created_at: new Date().toISOString()
+            },
+          ])
+          .select()
+          .single();
 
         if (userError) {
           throw userError;
         }
 
-        const { error: allergiesError } = await supabase.from('allergies').insert([
-          {
-            profile_id: data.user.id,
-            description: allergies.trim(),
-          },
-        ]);
+        const { error: allergiesError } = await supabase
+          .from('allergies')
+          .insert([
+            {
+              profile_id: userData.id, 
+              description: allergies.trim(),
+            },
+          ]);
 
         if (allergiesError) {
           throw allergiesError;
