@@ -202,7 +202,6 @@ export default function SOS() {
               onPress={handleProfile} // <- función que se ejecuta al presionar
             >
               <View style={styles.userAvatar}>
-                <Text style={styles.userAvatarText}>JP</Text>
               </View>
               <Text style={styles.userName}>{profile?.name || user?.name || 'Usuario'}</Text>
             </TouchableOpacity>
@@ -332,11 +331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  userAvatarText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
+  
   userName: {
     fontSize: 18,
     fontWeight: '600',
