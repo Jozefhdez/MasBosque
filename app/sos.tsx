@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Polygon, Circle, Defs, Filter, FeGaussianBlur, FeOffset } from 'react-native-svg';
 import { useRouter } from 'expo-router';
+import { supabase } from '../lib/supabaseClient'
 
 export default function SOS() {
     const router = useRouter();
@@ -57,6 +58,18 @@ export default function SOS() {
 
         setIsSOSActive(true);
     };
+
+    const [user, setUser] = useState(null)
+    const [profile, setProfile] = useState(null)
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+
+      if (user) {
+        const { data } = await supabase.from('users').select('*').eq('user_id', user.id).single()
+        setProfile(data)
+      }
+    }
 
     const handleProfile =()=>{
       router.push('/profile');
@@ -190,7 +203,7 @@ export default function SOS() {
               <View style={styles.userAvatar}>
                 <Text style={styles.userAvatarText}>JP</Text>
               </View>
-              <Text style={styles.userName}>Juan Alfredo Peréz</Text>
+              <Text style={styles.userName}>{profile.name}</Text>
             </TouchableOpacity>
           </View>
         ) : (

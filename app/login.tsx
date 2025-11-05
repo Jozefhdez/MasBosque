@@ -11,17 +11,24 @@ import {
   ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from '../lib/supabaseClient'
 
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    console.log('Login:', { email, password });
-    router.push('/sos');
-  };
+  const handleLogin  = async () => {
+    setError('')
+    const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        })
+        if (error) setError(error.message)
+        else navigation.navigate('Home')
+    }
 
   const handleCreateAccount = () => {
     router.push('/register');
