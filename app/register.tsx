@@ -58,7 +58,6 @@ export default function Register() {
     if (!allergies.trim()) return alert('Por favor, ingresa tus alergias. Si no tienes ninguna, escribe "Ninguna".');
 
     try {
-      // 1. Registrar al usuario en Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -71,12 +70,11 @@ export default function Register() {
       }
 
       if (authData?.user) {
-        // 2. Insertar datos en la tabla "users"
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([
             {
-              auth_id: authData.user.id, // Usar auth_id para relacionar con Auth
+              auth_id: authData.user.id, 
               email: email.trim(),
               first_name: firstName.trim(),
               last_name: lastName.trim(),
