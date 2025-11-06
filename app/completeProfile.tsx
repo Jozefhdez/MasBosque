@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from './lib/supabaseClient';
 
 type Allergy = {
   id: string;
@@ -17,7 +18,26 @@ type Allergy = {
 
 export default function CompleteProfile() {
   const router = useRouter();
-  const [userName] = useState('Juan Alfredo Peréz');
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    const getUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('first_name, last_name')
+          .eq('auth_id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserName(`${profile.first_name} ${profile.last_name}`);
+        }
+      }
+    };
+
+    getUserProfile();
+  }, []);
   const [allergies, setAllergies] = useState<Allergy[]>([
     { id: '1', value: 'Ibuprofeno' },
     { id: '2', value: 'Ateips' },

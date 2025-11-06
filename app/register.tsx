@@ -58,24 +58,27 @@ export default function Register() {
     if (!allergies.trim()) return alert('Por favor, ingresa tus alergias. Si no tienes ninguna, escribe "Ninguna".');
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // 1. Registrar al usuario en Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
       });
 
-      if (error) {
-        setError(error.message);
-        alert(error.message);
+      if (authError) {
+        setError(authError.message);
+        alert(authError.message);
         return;
       }
 
-      if (data?.user) {
-        const { data: insertedUser, error: userError } = await supabase
+      if (authData?.user) {
+        // 2. Insertar datos en la tabla "users"
+        const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([
             {
-              id: data.user.id,
-              name: firstName.trim(),
+              auth_id: authData.user.id, // Usar auth_id para relacionar con Auth
+              email: email.trim(),
+              first_name: firstName.trim(),
               last_name: lastName.trim(),
               role: 'user',
             },
@@ -84,17 +87,18 @@ export default function Register() {
           .single();
 
         if (userError) {
-          console.error('Error inserting user row:', userError);
+          console.error('Error al insertar usuario:', userError);
           throw userError;
         }
 
-        console.debug('Inserted user row:', insertedUser);
+        console.debug('Usuario creado:', userData);
 
-        const { data: insertedAllergy, error: allergiesError } = await supabase
+        // 3. Insertar alergias relacionadas con el usuario
+        const { data: allergyData, error: allergiesError } = await supabase
           .from('allergies')
           .insert([
             {
-              profile_id: insertedUser.id,
+              user_id: userData.id, // Usar el ID de la tabla users
               description: allergies.trim(),
             },
           ])
@@ -102,14 +106,14 @@ export default function Register() {
           .single();
 
         if (allergiesError) {
-          console.error('Error inserting allergies row:', allergiesError);
+          console.error('Error al insertar alergias:', allergiesError);
           throw allergiesError;
         }
 
-        console.debug('Inserted allergy row:', insertedAllergy);
+        console.debug('Alergias registradas:', allergyData);
       }
 
-      alert('Registro exitoso.');
+      alert('¡Registro exitoso! Bienvenido/a ' + firstName);
       router.push('/completeProfile');
     } catch (err: any) {
       console.error(err);
