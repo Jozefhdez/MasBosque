@@ -26,9 +26,7 @@ export default function CompleteProfile() {
     { id: '1', value: '' },
   ]);
 
-  // 1) Resolver el ID del perfil:
-  //    - primero usamos profileId de la ruta si viene
-  //    - si no, intentamos con auth.getUser()
+  
   useEffect(() => {
     const resolveProfileId = async () => {
       if (typeof profileId === 'string' && profileId.length > 0) {
@@ -36,7 +34,6 @@ export default function CompleteProfile() {
         return;
       }
 
-      // Fallback: intentar obtener desde Auth
       const { data, error } = await supabase.auth.getUser();
       if (error) {
         console.log('Error en auth.getUser:', error);
@@ -50,7 +47,6 @@ export default function CompleteProfile() {
     resolveProfileId();
   }, [profileId]);
 
-  // 2) Cargar nombre desde tabla users usando resolvedProfileId
   useEffect(() => {
     const loadProfile = async () => {
       if (!resolvedProfileId) return;
@@ -109,7 +105,6 @@ export default function CompleteProfile() {
     }
 
     if (!resolvedProfileId) {
-      // Si llegamos aquí, es que ni profileId ni auth.getUser() devolvieron algo
       Alert.alert('Error', 'No se pudo obtener el usuario actual.');
       return;
     }
