@@ -11,48 +11,129 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from './lib/supabaseClient'
+import { supabase } from './lib/supabaseClient';
 
+// ---- VALIDACIONES ----
+const validateName = (name: string) =>
+  /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(name.trim()) && name.trim() !== '';
+
+const validateEmail = (email: string) =>
+  /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim()) &&
+  email.trim() !== '';
+
+const validatePassword = (password: string) =>
+  password.length >= 8 &&
+  /[A-Z]/.test(password) &&
+  /[!@#$%^&*]/.test(password) &&
+  password.trim() !== '';
 
 export default function Register() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('')
-  const [showPassword, setShowPassword] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [firstName, setFirstName]     = useState('');
+  const [lastName, setLastName]       = useState('');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [allergies, setAllergies]     = useState('');
+  const [error, setError]             = useState('');
+  const [showPassword, setShowPassword]     = useState(false);
+  const [acceptedTerms, setAcceptedTerms]   = useState(false);
 
   const handleBack = () => {
-      router.back();
-    };
+    router.back();
+  };
 
-    const handleRegister = async () => {
-        setError('')
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-        if (error) {
-            setError(error.message)
-        } else {
-          // Guarda datos adicionales en tu tabla `users`
-          if (data.user) {
-            await supabase.from('users').insert([
-              {
-                user_id: data.user.id,
-                name,
-                last_name: lastName,
-                role: 'user',
-              },
-            ])
-          }
-          router.push('/completeProfile');
-          }
+  const handleRegister = async () => {
+    setError('');
+
+    // ----- VALIDACIONES FRONTEND -----
+    if (!acceptedTerms) {
+      alert('Debes aceptar los términos y condiciones');
+      return;
+    }
+
+    if (!validateName(firstName)) {
+      alert('El nombre debe contener solo letras y no estar vacío.');
+      return;
+    }
+
+    if (!validateName(lastName)) {
+      alert('El apellido debe contener solo letras y no estar vacío.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      alert('El correo electrónico no es válido.');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      alert('La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.');
+      return;
+    }
+
+    try {
+      // 1️⃣ Registrar en Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      if (authError) {
+        console.error('Error en Auth.signUp:', authError);
+        setError(authError.message);
+        alert(authError.message);
+        return;
+      }
+
+      // 2️⃣ Insertar en tabla `users`
+      if (authData?.user) {
+        const authId = authData.user.id;
+
+        const { error: userError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: authId,                 // FK a auth.users.id
+              name: firstName.trim(),
+              last_name: lastName.trim(),
+              role: 'user',
+            },
+          ]);
+
+        if (userError) {
+          console.error('Error al insertar en users:', userError);
+          setError(userError.message);
+          alert('Ocurrió un error al guardar tus datos. Intenta de nuevo.');
+          return;
         }
 
+        // 3️⃣ Insertar en tabla `allergies`
+        const allergyDescription =
+          allergies.trim().length > 0 ? allergies.trim() : 'Ninguna';
 
+        const { error: allergiesError } = await supabase
+          .from('allergies')
+          .insert([
+            {
+              profile_id: authId,             // FK a users.id
+              description: allergyDescription,
+            },
+          ]);
+
+        if (allergiesError) {
+          console.error('Error al insertar en allergies:', allergiesError);
+          // si quieres que falle duro, puedes hacer: return;
+        }
+      }
+
+      alert('¡Registro exitoso! Bienvenido/a ' + firstName);
+      router.push('/completeProfile');
+    } catch (err: any) {
+      console.error('Error inesperado en registro:', err);
+      setError(err.message || 'Error inesperado');
+      alert('Ocurrió un error inesperado. Intenta de nuevo.');
+    }
+  };
 
   const handleLoginRedirect = () => {
     router.push('/login');
@@ -72,12 +153,14 @@ export default function Register() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
+
       {/* Header con botón de retroceso */}
-        <View style={styles.headerLogo}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.headerLogo}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -181,6 +264,29 @@ export default function Register() {
             </View>
           </View>
 
+          {/* Alergias */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Alergias</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder='Escribe tus alergias o "Ninguna"'
+                placeholderTextColor="#999"
+                value={allergies}
+                onChangeText={setAllergies}
+                multiline
+              />
+              {allergies.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setAllergies('')}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           <TouchableOpacity
             style={styles.termsContainer}
             onPress={() => setAcceptedTerms(!acceptedTerms)}
@@ -193,8 +299,8 @@ export default function Register() {
               He leído y estoy de acuerdo con el{' '}
               <Text style={styles.termsLink} onPress={handleTermsPress}>
                 Acuerdo de usuario
-              </Text>
-              {' '}y{' '}
+              </Text>{' '}
+              y{' '}
               <Text style={styles.termsLink} onPress={handlePrivacyPress}>
                 Política de privacidad
               </Text>
@@ -217,33 +323,31 @@ export default function Register() {
   );
 }
 
+// 👇 AQUI está la definición de `styles` (fuera del componente, al final del archivo)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F0',
   },
-    headerLogo: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      paddingHorizontal: '8%',
-      paddingTop: 60,
-      paddingBottom: 20,
-    },
-
-    backButton: {
-      width: 40,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-    },
-
-    backIcon: {
-      fontSize: 28,
-      color: '#000',
-    },
-
+  headerLogo: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: '8%',
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  backIcon: {
+    fontSize: 28,
+    color: '#000',
+  },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
