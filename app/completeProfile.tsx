@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
 
 type Allergy = {
@@ -18,35 +18,66 @@ type Allergy = {
 
 export default function CompleteProfile() {
   const router = useRouter();
-  const [userName, setUserName] = useState('');
+  const { profileId } = useLocalSearchParams<{ profileId?: string }>();
 
+  const [resolvedProfileId, setResolvedProfileId] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
+  const [allergies, setAllergies] = useState<Allergy[]>([
+    { id: '1', value: '' },
+  ]);
+
+  // 1) Resolver el ID del perfil:
+  //    - primero usamos profileId de la ruta si viene
+  //    - si no, intentamos con auth.getUser()
   useEffect(() => {
-    const getUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.id) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('first_name, last_name')
-          .eq('auth_id', user.id)
-          .single();
-        
-        if (profile) {
-          setUserName(`${profile.first_name} ${profile.last_name}`);
-        }
+    const resolveProfileId = async () => {
+      if (typeof profileId === 'string' && profileId.length > 0) {
+        setResolvedProfileId(profileId);
+        return;
+      }
+
+      // Fallback: intentar obtener desde Auth
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        console.log('Error en auth.getUser:', error);
+        return;
+      }
+      if (data?.user?.id) {
+        setResolvedProfileId(data.user.id);
       }
     };
 
-    getUserProfile();
-  }, []);
-  const [allergies, setAllergies] = useState<Allergy[]>([
-    { id: '1', value: 'Ibuprofeno' },
-    { id: '2', value: 'Ateips' },
-    { id: '3', value: 'Epinefrina' },
-  ]);
+    resolveProfileId();
+  }, [profileId]);
 
-const handleBack = () => {
-      router.back();
+  // 2) Cargar nombre desde tabla users usando resolvedProfileId
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!resolvedProfileId) return;
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, last_name')
+        .eq('id', resolvedProfileId)
+        .single();
+
+      if (error) {
+        console.log('Error cargando perfil:', error);
+        return;
+      }
+
+      if (data) {
+        setUserName(`${data.name} ${data.last_name}`.trim());
+      }
     };
+
+    loadProfile();
+  }, [resolvedProfileId]);
+
+  const handleBack = () => {
+    router.back();
+  };
+
   const handleAddPhoto = () => {
     Alert.alert('Agregar foto', 'Funcionalidad de cámara/galería próximamente');
   };
@@ -66,25 +97,48 @@ const handleBack = () => {
     ));
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const validAllergies = allergies.filter(a => a.value.trim() !== '');
 
     if (validAllergies.length === 0) {
-      Alert.alert('Atención', 'Por favor agrega al menos una alergia o medicamento contraindicado.');
+      Alert.alert(
+        'Atención',
+        'Por favor agrega al menos una alergia o medicamento contraindicado.'
+      );
+      return;
+    }
+
+    if (!resolvedProfileId) {
+      // Si llegamos aquí, es que ni profileId ni auth.getUser() devolvieron algo
+      Alert.alert('Error', 'No se pudo obtener el usuario actual.');
+      return;
+    }
+
+    const rows = validAllergies.map(a => ({
+      profile_id: resolvedProfileId,
+      description: a.value.trim(),
+    }));
+
+    const { error } = await supabase.from('allergies').insert(rows);
+
+    if (error) {
+      console.log('Error al insertar alergias:', error);
+      Alert.alert('Error', 'No se pudieron guardar tus alergias.');
       return;
     }
 
     console.log('Perfil completado:', { userName, allergies: validAllergies });
+
     router.replace('/sos');
   };
 
   return (
     <View style={styles.container}>
-    {/* Header con botón de retroceso */}
+      {/* Header con botón de retroceso */}
       <View style={styles.headerLogo}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -111,7 +165,7 @@ const handleBack = () => {
 
         <View style={styles.allergiesContainer}>
           {allergies.map((allergy) => (
-            <View style={styles.allergyRow}>
+            <View key={allergy.id} style={styles.allergyRow}>
               <TouchableOpacity
                 style={styles.removeButton}
                 onPress={() => handleRemoveAllergy(allergy.id)}
@@ -161,9 +215,9 @@ const styles = StyleSheet.create({
   },
   headerLogo: {
     width: '100%',
-    flexDirection: 'row',       // Para que los elementos vayan en fila
-    alignItems: 'center',       // Centra verticalmente el botón
-    justifyContent: 'flex-start', // Lo alinea a la izquierda
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: '8%',
     paddingTop: 60,
     paddingBottom: 20,
@@ -172,13 +226,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     justifyContent: 'center',
-    alignItems: 'flex-start',   // Se asegura que quede hacia la izquierda
+    alignItems: 'flex-start',
   },
   backIcon: {
     fontSize: 28,
     color: '#000',
   },
-
   header: {
     backgroundColor: '#2C2C2C',
     paddingTop: 60,
