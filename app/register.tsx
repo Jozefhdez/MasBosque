@@ -91,12 +91,11 @@ export default function Register() {
 
         console.debug('Usuario creado:', userData);
 
-        // 3. Insertar alergias relacionadas con el usuario
         const { data: allergyData, error: allergiesError } = await supabase
           .from('allergies')
           .insert([
             {
-              user_id: userData.id, // Usar el ID de la tabla users
+              user_id: userData.id, 
               description: allergies.trim(),
             },
           ])
