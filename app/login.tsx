@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
+import styles from './Styles';
 
 export default function Login(): JSX.Element {
   const router = useRouter();
@@ -89,7 +90,7 @@ export default function Login(): JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.containerLogin}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -200,38 +201,4 @@ export default function Login(): JSX.Element {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
-  header: { alignItems: 'center', marginBottom: 40 },
-  headerLogo: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: '8%',
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  backIcon: { fontSize: 28, color: '#000' },
-  logo: { fontSize: 32, fontWeight: '700' },
-  logoPlus: { color: '#2D5016', fontSize: 32, fontWeight: '700' },
-  logoBosque: { color: '#2D5016', fontSize: 32, fontWeight: '700' },
-  logoManu: { fontSize: 32, fontWeight: '700', color: '#000', marginTop: -8 },
-  greeting: { fontSize: 28, fontWeight: '700', color: '#2D5016', marginBottom: 40 },
-  form: { marginBottom: 32 },
-  inputContainer: { marginBottom: 24 },
-  label: { fontSize: 16, fontWeight: '600', color: '#000', marginBottom: 8 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 16, height: 56 },
-  input: { flex: 1, fontSize: 16, color: '#000' },
-  iconButton: { padding: 8 },
-  eyeIcon: { fontSize: 20 },
-  forgotPassword: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 8, textDecorationLine: 'underline' },
-  loginButton: { backgroundColor: '#2D5016', borderRadius: 12, height: 56, justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
-  loginButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerText: { fontSize: 14, color: '#666' },
-  createAccountText: { fontSize: 14, color: '#2D5016', fontWeight: '600' },
-  errorText: { color: 'red', textAlign: 'center', marginBottom: 16 },
-});
+
