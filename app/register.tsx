@@ -13,8 +13,9 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
 
+// ---- VALIDACIONES ----
 const validateName = (name: string) =>
-  /^[A-Za-z]+$/.test(name.trim()) && name.trim() !== '';
+  /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(name.trim()) && name.trim() !== '';
 
 const validateEmail = (email: string) =>
   /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.trim()) &&
@@ -28,16 +29,115 @@ const validatePassword = (password: string) =>
 
 export default function Register() {
   const router = useRouter();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [allergies, setAllergies] = useState('');
-  const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [firstName, setFirstName]     = useState('');
+  const [lastName, setLastName]       = useState('');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [allergies, setAllergies]     = useState('');
+  const [error, setError]             = useState('');
+  const [showPassword, setShowPassword]     = useState(false);
+  const [acceptedTerms, setAcceptedTerms]   = useState(false);
 
-  const handleBack = () => router.back();
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleRegister = async () => {
+    setError('');
+
+    // ----- VALIDACIONES FRONTEND -----
+    if (!acceptedTerms) {
+      alert('Debes aceptar los términos y condiciones');
+      return;
+    }
+
+    if (!validateName(firstName)) {
+      alert('El nombre debe contener solo letras y no estar vacío.');
+      return;
+    }
+
+    if (!validateName(lastName)) {
+      alert('El apellido debe contener solo letras y no estar vacío.');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      alert('El correo electrónico no es válido.');
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      alert('La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.');
+      return;
+    }
+
+    try {
+      // 1️⃣ Registrar en Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password.trim(),
+      });
+
+      if (authError) {
+        console.error('Error en Auth.signUp:', authError);
+        setError(authError.message);
+        alert(authError.message);
+        return;
+      }
+
+      // 2️⃣ Insertar en tabla `users`
+      if (authData?.user) {
+        const authId = authData.user.id;
+
+        const { error: userError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: authId,                 // FK a auth.users.id
+              name: firstName.trim(),
+              last_name: lastName.trim(),
+              role: 'user',
+            },
+          ]);
+
+        if (userError) {
+          console.error('Error al insertar en users:', userError);
+          setError(userError.message);
+          alert('Ocurrió un error al guardar tus datos. Intenta de nuevo.');
+          return;
+        }
+
+        // 3️⃣ Insertar en tabla `allergies`
+        const allergyDescription =
+          allergies.trim().length > 0 ? allergies.trim() : 'Ninguna';
+
+        const { error: allergiesError } = await supabase
+          .from('allergies')
+          .insert([
+            {
+              profile_id: authId,             // FK a users.id
+              description: allergyDescription,
+            },
+          ]);
+
+        if (allergiesError) {
+          console.error('Error al insertar en allergies:', allergiesError);
+          // si quieres que falle duro, puedes hacer: return;
+        }
+      }
+
+      alert('¡Registro exitoso! Bienvenido/a ' + firstName);
+      router.push('/completeProfile');
+    } catch (err: any) {
+      console.error('Error inesperado en registro:', err);
+      setError(err.message || 'Error inesperado');
+      alert('Ocurrió un error inesperado. Intenta de nuevo.');
+    }
+  };
+
+  const handleLoginRedirect = () => {
+    router.push('/login');
+  };
 
   const handleTermsPress = () => {
     console.log('Abrir Acuerdo de usuario');
@@ -47,81 +147,6 @@ export default function Register() {
     console.log('Abrir Política de privacidad');
   };
 
-  const handleSignUp = async () => {
-    setError('');
-
-    if (!acceptedTerms) return alert('Debes aceptar los términos y condiciones');
-    if (!validateName(firstName)) return alert('El nombre debe contener solo letras y no estar vacío.');
-    if (!validateName(lastName)) return alert('El apellido debe contener solo letras y no estar vacío.');
-    if (!validateEmail(email)) return alert('El correo electrónico no es válido.');
-    if (!validatePassword(password)) return alert('La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.');
-    if (!allergies.trim()) return alert('Por favor, ingresa tus alergias. Si no tienes ninguna, escribe "Ninguna".');
-
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      if (authError) {
-        setError(authError.message);
-        alert(authError.message);
-        return;
-      }
-
-      if (authData?.user) {
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .insert([
-            {
-              auth_id: authData.user.id, 
-              email: email.trim(),
-              first_name: firstName.trim(),
-              last_name: lastName.trim(),
-              role: 'user',
-            },
-          ])
-          .select()
-          .single();
-
-        if (userError) {
-          console.error('Error al insertar usuario:', userError);
-          throw userError;
-        }
-
-        console.debug('Usuario creado:', userData);
-
-        const { data: allergyData, error: allergiesError } = await supabase
-          .from('allergies')
-          .insert([
-            {
-              user_id: userData.id, 
-              description: allergies.trim(),
-            },
-          ])
-          .select()
-          .single();
-
-        if (allergiesError) {
-          console.error('Error al insertar alergias:', allergiesError);
-          throw allergiesError;
-        }
-
-        console.debug('Alergias registradas:', allergyData);
-      }
-
-      alert('¡Registro exitoso! Bienvenido/a ' + firstName);
-      router.push('/completeProfile');
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Error inesperado');
-      alert('Ocurrió un error inesperado. Intenta de nuevo.');
-    }
-  };
-
-  const handleLoginRedirect = () => router.push('/login');
-
-  const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -129,6 +154,7 @@ export default function Register() {
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
 
+      {/* Header con botón de retroceso */}
       <View style={styles.headerLogo}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
@@ -193,29 +219,6 @@ export default function Register() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Alergias <Text style={styles.required}>(requerido)</Text></Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="Escribe tus alergias o 'Ninguna'"
-                placeholderTextColor="#999"
-                value={allergies}
-                onChangeText={setAllergies}
-                multiline={true}
-                numberOfLines={3}
-              />
-              {allergies.length > 0 && (
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setAllergies('')}
-                >
-                  <Text style={styles.clearIcon}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
             <Text style={styles.label}>Correo</Text>
             <View style={styles.inputWrapper}>
               <TextInput
@@ -261,6 +264,29 @@ export default function Register() {
             </View>
           </View>
 
+          {/* Alergias */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Alergias</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder='Escribe tus alergias o "Ninguna"'
+                placeholderTextColor="#999"
+                value={allergies}
+                onChangeText={setAllergies}
+                multiline
+              />
+              {allergies.length > 0 && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setAllergies('')}
+                >
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
           <TouchableOpacity
             style={styles.termsContainer}
             onPress={() => setAcceptedTerms(!acceptedTerms)}
@@ -280,32 +306,28 @@ export default function Register() {
               </Text>
             </Text>
           </TouchableOpacity>
+        </View>
 
-          <TouchableOpacity style={styles.registerButton} onPress={handleSignUp}>
-            <Text style={styles.registerButtonText}>Registrarse</Text>
+        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+          <Text style={styles.registerButtonText}>Registrarse</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Ya tienes cuenta? </Text>
+          <TouchableOpacity onPress={handleLoginRedirect}>
+            <Text style={styles.loginText}>Iniciar sesión</Text>
           </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Ya tienes cuenta? </Text>
-            <TouchableOpacity onPress={handleLoginRedirect}>
-              <Text style={styles.loginText}>Iniciar sesión</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+// 👇 AQUI está la definición de `styles` (fuera del componente, al final del archivo)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F0',
-  },
-  required: {
-    color: '#FF6B6B',
-    fontSize: 12,
-    fontWeight: '400',
   },
   headerLogo: {
     width: '100%',
@@ -454,3 +476,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
