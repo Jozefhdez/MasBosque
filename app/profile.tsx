@@ -52,25 +52,42 @@ const Profile = () => {
       );
     };
 
-    const handleDeleteAccount = () => {
-        Alert.alert(
-          'Eliminar cuenta',
-          '¿Estás seguro? Esta acción no se puede deshacer.',
-          [
-            {
-              text: 'Cancelar',
-              style: 'cancel',
-            },
-            {
-              text: 'Eliminar',
-              onPress: () => {
-                console.log('Cuenta eliminada');
+    const handleDeleteAccount = async () => {
+      Alert.alert(
+        'Eliminar cuenta',
+        '¿Estás seguro? Tu cuenta será eliminada a la brevedad.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Confirmar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                // Obtener usuario actual
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                if (userError || !user) throw new Error('No se pudo obtener el usuario actual');
+
+                // Registrar la solicitud
+                const { error: insertError } = await supabase
+                  .from('account_deletion_requests')
+                  .insert({ user_id: user.id });
+
+                if (insertError) throw insertError;
+
+                // Cerrar sesión
+                await supabase.auth.signOut();
+
+                // Avisar al usuario
+                Alert.alert('Cuenta en proceso de eliminación', 'Tu cuenta será eliminada a la brevedad.');
                 router.replace('/login');
-              },
-              style: 'destructive',
+              } catch (error) {
+                console.error('Error al solicitar eliminación:', error.message);
+                Alert.alert('Error', 'No se pudo solicitar la eliminación. Intenta nuevamente.');
+              }
             },
-          ]
-        );
+          },
+        ]
+      );
     };
 
     return (
