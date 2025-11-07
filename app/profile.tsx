@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from './lib/supabaseClient';
 
 const Profile = () => {
     const router = useRouter();
@@ -23,24 +24,32 @@ const Profile = () => {
     };
 
     const handleCloseSession = () => {
-        Alert.alert(
-          'Cerrar sesión',
-          '¿Estás seguro que deseas cerrar sesión?',
-          [
-            {
-              text: 'Cancelar',
-              style: 'cancel',
+      Alert.alert(
+        'Cerrar sesión',
+        '¿Estás seguro que deseas cerrar sesión?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+          {
+            text: 'Cerrar sesión',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+
+                console.log('Sesión cerrada correctamente');
+                router.replace('/login'); // Redirige al login
+              } catch (error) {
+                console.error('Error al cerrar sesión:', error.message);
+                Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta nuevamente.');
+              }
             },
-            {
-              text: 'Cerrar sesión',
-              onPress: () => {
-                console.log('Sesión cerrada');
-                router.replace('/login');
-              },
-              style: 'destructive',
-            },
-          ]
-        );
+          },
+        ]
+      );
     };
 
     const handleDeleteAccount = () => {
