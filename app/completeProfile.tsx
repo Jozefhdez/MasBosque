@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import styles from './Styles';
@@ -18,6 +19,46 @@ type Allergy = {
 
 export default function CompleteProfile() {
   const router = useRouter();
+    const [sessionChecked, setSessionChecked] = useState(false);
+    const [user, setUser] = useState(null);
+
+    // Navegación segura: verificar sesión al montar
+    useEffect(() => {
+      const checkSession = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          // No hay sesión → enviar al inicio
+          router.replace('/initial');
+        } else {
+          setUser(data.session.user);
+        }
+        setSessionChecked(true);
+      };
+
+      checkSession();
+
+      // Escuchar cambios en sesión (logout o expiración)
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
+          router.replace('/initial');
+        } else {
+          setUser(session.user);
+        }
+      });
+
+      return () => {
+        listener.subscription.unsubscribe();
+      };
+    }, []);
+
+    // Mientras se valida sesión, mostrar loader
+    if (!sessionChecked) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2D5016" />
+        </View>
+      );
+    }
   const [userName] = useState('Juan Alfredo Peréz');
   const [allergies, setAllergies] = useState<Allergy[]>([
     { id: '1', value: 'Ibuprofeno' },
@@ -60,7 +101,7 @@ const handleBack = () => {
   };
 
   return (
-    <View style={styles.containerLogin}>
+    <View style={styles.containerModify}>
     {/* Header con botón de retroceso */}
       <View style={styles.headerLogo}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>

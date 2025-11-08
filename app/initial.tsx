@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,30 @@ import {
   ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-
+import { supabase } from './lib/supabaseClient';
+import styles from './Styles';
 
 export default function Initial() {
   const router = useRouter();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
+
+    // Navegación segura: redirigir si ya hay sesión
+    useEffect(() => {
+      const checkSession = async () => {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) throw error;
+          if (session) {
+            // Si hay sesión activa, ir directamente a /sos
+            router.replace('/sos');
+          }
+        } catch (err) {
+          console.error('Error al verificar sesión:', err);
+        }
+      };
+      checkSession();
+    }, []);
 
   const handleLogin  = async () => {
     router.push('/login');
@@ -31,27 +51,27 @@ export default function Initial() {
       resizeMode="cover"
     >
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.containerInitial}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <StatusBar barStyle="light-content" backgroundColor="rgba(0,0,0,0.3)" translucent />
 
         <ScrollView
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContainerInitial}
           keyboardShouldPersistTaps="handled"
         >
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logo}>
-              <Text style={styles.logoPlus}>+</Text>
-              <Text style={styles.logoBosque}>Bosque</Text>
+            <Text style={styles.logoInitial}>
+              <Text style={styles.logoPlusIntial}>+</Text>
+              <Text style={styles.logoBosqueInitial}>Bosque</Text>
             </Text>
-            <Text style={styles.logoManu}>Manu</Text>
+            <Text style={styles.logoManuInitial}>Manu</Text>
           </View>
 
           {/* Botón Iniciar Sesión */}
           <TouchableOpacity
-            style={styles.loginButton}
+            style={styles.loginButtonInitial}
             onPress={handleLogin}
           >
             <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
@@ -69,81 +89,3 @@ export default function Initial() {
     </ImageBackground>
   );
 }
-
-const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 60,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 120,
-  },
-  logo: {
-    fontSize: 40,
-    fontWeight: '700',
-  },
-  logoPlus: {
-    color: '#FFFFFF',
-    fontSize: 40,
-    fontWeight: '700',
-  },
-  logoBosque: {
-    color: '#FFFFFF',
-    fontSize: 40,
-    fontWeight: '700',
-  },
-  logoManu: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginTop: -8,
-  },
-  loginButton: {
-    width: '100%',
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  registerButton: {
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  registerButtonText: {
-    color: '#2D5016',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

@@ -6,6 +6,7 @@ import {
   StatusBar,
   Animated,
   PanResponder,
+  ActivityIndicator,
 } from 'react-native';
 import Svg, { Polygon, Circle, Defs, Filter, FeGaussianBlur, FeOffset } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -18,6 +19,48 @@ export default function SOS() {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+
+    // Navegación segura: verificar sesión al montar
+    useEffect(() => {
+      const checkSession = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          // No hay sesión → enviar al inicio
+          router.replace('/initial');
+        } else {
+          setUser(data.session.user);
+        }
+        setSessionChecked(true);
+      };
+
+      checkSession();
+
+      // Escuchar cambios en sesión (logout o expiración)
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
+          router.replace('/initial');
+        } else {
+          setUser(session.user);
+        }
+      });
+
+      return () => {
+        listener.subscription.unsubscribe();
+      };
+    }, []);
+
+    // Mientras se valida sesión, mostrar loader
+    if (!sessionChecked) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2D5016" />
+        </View>
+      );
+    }
 
   useEffect(() => {
     if (!isSOSActive) {
@@ -59,8 +102,7 @@ export default function SOS() {
     setIsSOSActive(true);
   };
 
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+
 
   const fetchUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();

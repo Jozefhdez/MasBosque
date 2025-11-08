@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,23 @@ export default function Login(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+  // Navegación segura: redirigir si ya hay sesión
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (session) {
+          // Si hay sesión activa, ir directamente a /sos
+          router.replace('/sos');
+        }
+      } catch (err) {
+        console.error('Error al verificar sesión:', err);
+      }
+    };
+    checkSession();
+  }, []);
+
   const handleBack = (): void => {
     router.back();
   };
@@ -45,7 +62,7 @@ export default function Login(): JSX.Element {
       if (error) {
         setError(error.message);
       } else {
-        router.push('/sos');
+        router.replace('/sos'); // navegación segura
       }
     } catch (err) {
       setError('Ocurrió un error inesperado.');
@@ -90,7 +107,7 @@ export default function Login(): JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      style={styles.containerLogin}
+      style={styles.containerModify}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -200,5 +217,3 @@ export default function Login(): JSX.Element {
     </KeyboardAvoidingView>
   );
 }
-
-

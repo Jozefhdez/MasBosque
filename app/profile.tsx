@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,112 +8,155 @@ import {
   ScrollView,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
+import styles from './Styles';
 
 const Profile = () => {
-    const router = useRouter();
+  const router = useRouter();
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [user, setUser] = useState(null);
 
-    const handleBack = () => {
-        router.back();
+  // Navegación segura: verificar sesión al montar
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) {
+        // No hay sesión → enviar al inicio
+        router.replace('/initial');
+      } else {
+        setUser(data.session.user);
+      }
+      setSessionChecked(true);
     };
 
-    const handleEditInfo = () => {
-        router.push('/modifyProfile');
+    checkSession();
+
+    // Escuchar cambios en sesión (logout o expiración)
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace('/initial');
+      } else {
+        setUser(session.user);
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
     };
+  }, []);
 
-    const handleCloseSession = () => {
-      Alert.alert(
-        'Cerrar sesión',
-        '¿Estás seguro que deseas cerrar sesión?',
-        [
-          {
-            text: 'Cancelar',
-            style: 'cancel',
-          },
-          {
-            text: 'Cerrar sesión',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-
-                console.log('Sesión cerrada correctamente');
-                router.replace('/login'); // Redirige al login
-              } catch (error) {
-                console.error('Error al cerrar sesión:', error.message);
-                Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta nuevamente.');
-              }
-            },
-          },
-        ]
-      );
-    };
-
-    const handleDeleteAccount = async () => {
-      Alert.alert(
-        'Eliminar cuenta',
-        '¿Estás seguro? Tu cuenta será eliminada a la brevedad.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Confirmar',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                // Obtener usuario actual
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
-                if (userError || !user) throw new Error('No se pudo obtener el usuario actual');
-
-                // Registrar la solicitud
-                const { error: insertError } = await supabase
-                  .from('account_deletion_requests')
-                  .insert({ user_id: user.id });
-
-                if (insertError) throw insertError;
-
-                // Cerrar sesión
-                await supabase.auth.signOut();
-
-                // Avisar al usuario
-                Alert.alert('Cuenta en proceso de eliminación', 'Tu cuenta será eliminada a la brevedad.');
-                router.replace('/login');
-              } catch (error) {
-                console.error('Error al solicitar eliminación:', error.message);
-                Alert.alert('Error', 'No se pudo solicitar la eliminación. Intenta nuevamente.');
-              }
-            },
-          },
-        ]
-      );
-    };
-
+  // Mientras se valida sesión, mostrar loader
+  if (!sessionChecked) {
     return (
-    <View style={styles.container}>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2D5016" />
+      </View>
+    );
+  }
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleEditInfo = () => {
+    router.push('/modifyProfile');
+  };
+
+  const handleCloseSession = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro que deseas cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase.auth.signOut();
+              if (error) throw error;
+              console.log('Sesión cerrada correctamente');
+              router.replace('/login');
+            } catch (error) {
+              console.error('Error al cerrar sesión:', error.message);
+              Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta nuevamente.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      'Eliminar cuenta',
+      '¿Estás seguro? Tu cuenta será eliminada a la brevedad.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Obtener usuario actual
+              const { data: { user }, error: userError } = await supabase.auth.getUser();
+              if (userError || !user) throw new Error('No se pudo obtener el usuario actual');
+
+              // Registrar la solicitud
+              const { error: insertError } = await supabase
+                .from('account_deletion_requests')
+                .insert({ user_id: user.id });
+
+              if (insertError) throw insertError;
+
+              // Cerrar sesión
+              await supabase.auth.signOut();
+
+              // Avisar al usuario
+              Alert.alert('Cuenta en proceso de eliminación', 'Tu cuenta será eliminada a la brevedad.');
+              router.replace('/login');
+            } catch (error) {
+              console.error('Error al solicitar eliminación:', error.message);
+              Alert.alert('Error', 'No se pudo solicitar la eliminación. Intenta nuevamente.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  return (
+    <View style={styles.containerModify}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       {/* Botón de retroceso */}
-      <View style={styles.header}>
+      <View style={styles.headerProfile}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContainerProfile}
         showsVerticalScrollIndicator={false}
       >
         {/* Avatar circular */}
         <View style={styles.avatarContainer}>
           <Image
             source={{ uri: 'https://images.unsplash.com/photo-1551731409-43eb3e517a1a?w=400' }}
-            style={styles.avatar}
+            style={styles.avatarProfile}
           />
         </View>
 
         {/* Nombre del usuario */}
-        <Text style={styles.userName}>Juan Alfredo Pérez Gonzalez</Text>
+        <Text style={styles.userNameProfile}>
+          {user?.user_metadata?.full_name || 'Usuario sin nombre'}
+        </Text>
 
         {/* Información de alergias */}
         <View style={styles.infoContainer}>
@@ -128,14 +171,14 @@ const Profile = () => {
           style={styles.primaryButton}
           onPress={handleEditInfo}
         >
-          <Text style={styles.primaryButtonText}>Modificar información</Text>
+          <Text style={styles.loginButtonText}>Modificar información</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.dangerButton}
           onPress={handleCloseSession}
         >
-          <Text style={styles.dangerButtonText}>Cerrar sesión</Text>
+          <Text style={styles.loginButtonText}>Cerrar sesión</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -146,107 +189,7 @@ const Profile = () => {
         </TouchableOpacity>
       </ScrollView>
     </View>
-    );
+  );
 };
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#FFFFFF',
-    },
-    header: {
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-    },
-    backButton: {
-        width: 40,
-        height: 40,
-        justifyContent: 'center',
-    },
-    backIcon: {
-        fontSize: 40,
-        color: '#000',
-    },
-    scrollContainer: {
-        paddingHorizontal: 24,
-        paddingBottom: 40,
-        alignItems: 'center',
-    },
-    avatarContainer: {
-        marginBottom: 24,
-    },
-    avatar: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-    },
-    userName: {
-        fontSize: 25,
-        fontWeight: '700',
-        color: '#000',
-        textAlign: 'center',
-        marginBottom: 32,
-    },
-    infoContainer: {
-        width: '100%',
-        marginBottom: 40,
-    },
-    infoText: {
-        fontSize: 18,
-        fontWeight: '500',
-        color: '#000',
-        marginBottom: 12,
-    },
-    allergyItem: {
-        fontSize: 18,
-        fontWeight: '500',
-        color: '#666',
-        marginBottom: 6,
-    },
-    primaryButton: {
-        width: '100%',
-        backgroundColor: '#2D5016',
-        borderRadius: 12,
-        height: 56,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    primaryButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    dangerButton: {
-        width: '100%',
-        backgroundColor: '#A63C3C',
-        borderRadius: 12,
-        height: 56,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    dangerButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    outlineButton: {
-        width: '100%',
-        backgroundColor: 'transparent',
-        borderRadius: 12,
-        height: 56,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#A63C3C',
-    },
-    outlineButtonText: {
-        color: '#A63C3C',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-});
 
 export default Profile;
