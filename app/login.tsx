@@ -62,7 +62,7 @@ export default function Login(): JSX.Element {
       if (error) {
         setError(error.message);
       } else {
-        router.replace('/sos'); // navegación segura
+        router.push('/sos'); // navegación segura
       }
     } catch (err) {
       setError('Ocurrió un error inesperado.');
@@ -113,7 +113,7 @@ export default function Login(): JSX.Element {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header con botón de retroceso */}
-      <View style={styles.headerLogo}>
+      <View style={styles.headerLogin}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>

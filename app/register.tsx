@@ -108,7 +108,7 @@ export default function Register() {
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
       {/* Header con botón de retroceso */}
-      <View style={styles.headerLogo}>
+      <View style={styles.headerLogin}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
@@ -216,8 +216,7 @@ export default function Register() {
             <View style={styles.checkbox}>
               {acceptedTerms && <View style={styles.checkboxFilled} />}
             </View>
-            <Text style={styles.termsText}>
-              He leído y estoy de acuerdo con el{' '}
+            <Text style={styles.termsText}>He leído y estoy de acuerdo con el{' '}
               <Text style={styles.termsLink} onPress={handleTermsPress}>
                 Acuerdo de usuario
               </Text>{' '}

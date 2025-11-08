@@ -24,58 +24,40 @@ export default function SOS() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
 
-    // Navegación segura: verificar sesión al montar
-    useEffect(() => {
-      const checkSession = async () => {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data.session) {
-          // No hay sesión → enviar al inicio
-          router.replace('/initial');
-        } else {
-          setUser(data.session.user);
-        }
-        setSessionChecked(true);
-      };
+  // Session check effect
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) {
+        router.replace('/initial');
+      } else {
+        setUser(data.session.user);
+      }
+      setSessionChecked(true);
+    };
 
-      checkSession();
+    checkSession();
 
-      // Escuchar cambios en sesión (logout o expiración)
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!session) {
-          router.replace('/initial');
-        } else {
-          setUser(session.user);
-        }
-      });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace('/initial');
+      } else {
+        setUser(session.user);
+      }
+    });
 
-      return () => {
-        listener.subscription.unsubscribe();
-      };
-    }, []);
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
-    // Mientras se valida sesión, mostrar loader
-    if (!sessionChecked) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2D5016" />
-        </View>
-      );
-    }
-
+  // Pulse animation effect (always declared)
   useEffect(() => {
     if (!isSOSActive) {
       const pulse = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
+          Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
         ])
       );
       pulse.start();
@@ -83,27 +65,7 @@ export default function SOS() {
     }
   }, [isSOSActive]);
 
-  const handleSOSPress = () => {
-    if (isSOSActive) return;
-
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    setIsSOSActive(true);
-  };
-
-
-
+  // Fetch user profile when session is checked
   const fetchUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     setUser(user);
@@ -168,11 +130,40 @@ export default function SOS() {
 
   const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
+  // Handle SOS button press
+  const handleSOSPress = () => {
+    if (isSOSActive) return; // Prevent multiple presses while SOS is active
+
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setIsSOSActive(true); // Set SOS active
+  };
+
+  // 👉 Conditional rendering happens here, after all hooks
+  if (!sessionChecked) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2D5016" />
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.container, isSOSActive && styles.containerActive]}>
+    <View style={[styles.containerSos, isSOSActive && styles.containerActive]}>
       <StatusBar
-        barStyle={isSOSActive ? "light-content" : "dark-content"}
-        backgroundColor={isSOSActive ? "#B73239" : "#FFFFFF"}
+        barStyle={isSOSActive ? 'light-content' : 'dark-content'}
+        backgroundColor={isSOSActive ? '#B73239' : '#FFFFFF'}
       />
 
       <View style={styles.headerLogo}>
@@ -214,7 +205,7 @@ export default function SOS() {
 
               <Polygon
                 points={getHexagonPoints(150, 150, 120)}
-                fill={isSOSActive ? "#8B2630" : "#B73239"}
+                fill={isSOSActive ? '#8B2630' : '#B73239'}
               />
 
               <Circle cx="150" cy="150" r="85" fill="none" stroke="#FFFFFF" strokeWidth="4" />
@@ -236,7 +227,9 @@ export default function SOS() {
 
           <TouchableOpacity style={styles.userCard} onPress={handleProfile}>
             <View style={styles.userAvatar} />
-            <Text style={styles.userName}>{profile?.name || user?.name || 'Usuario'}</Text>
+            <Text style={styles.userName}>
+              {profile?.name || user?.name || 'Usuario'}
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (

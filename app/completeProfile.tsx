@@ -51,14 +51,21 @@ export default function CompleteProfile() {
       };
     }, []);
 
-    // Mientras se valida sesión, mostrar loader
-    if (!sessionChecked) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2D5016" />
-        </View>
-      );
-    }
+  // Fetch user profile when session is checked
+      const fetchUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (user) {
+          const { data } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          setProfile(data);
+        }
+      };
+
   const [userName] = useState('Juan Alfredo Peréz');
   const [allergies, setAllergies] = useState<Allergy[]>([
     { id: '1', value: 'Ibuprofeno' },
@@ -99,6 +106,15 @@ const handleBack = () => {
     console.log('Perfil completado:', { userName, allergies: validAllergies });
     router.replace('/sos');
   };
+
+     // 👉 Conditional rendering happens here, after all hooks
+      if (!sessionChecked) {
+        return (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2D5016" />
+          </View>
+        );
+      }
 
   return (
     <View style={styles.containerModify}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import styles from './Styles';
+import { supabase } from './lib/supabaseClient';
 
 const ModifyProfile = () => {
     const [firstName, setFirstName] = useState('Juan Alfredo');
@@ -55,14 +56,20 @@ const ModifyProfile = () => {
       };
     }, []);
 
-    // Mientras se valida sesión, mostrar loader
-    if (!sessionChecked) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2D5016" />
-        </View>
-      );
-    }
+    // Fetch user profile when session is checked
+      const fetchUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (user) {
+          const { data } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          setProfile(data);
+        }
+      };
 
   const handleBack = () => {
     router.back();
@@ -143,6 +150,14 @@ type Allergy = {
     setNewPassword('');
     setConfirmPassword('');
   };
+   // 👉 Conditional rendering happens here, after all hooks
+    if (!sessionChecked) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2D5016" />
+        </View>
+      );
+    }
 
   return (
     <View style={styles.containerModify}>
@@ -156,7 +171,7 @@ type Allergy = {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContainerProfile}
+        contentContainerStyle={styles.scrollContainerModify}
         showsVerticalScrollIndicator={true}
       >
         {/* Avatar con botón de editar */}
@@ -240,8 +255,7 @@ type Allergy = {
             <View key={allergy.id} style={styles.allergyRow}>
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => handleRemoveAllergy(allergy.id)}
-              >
+                >
                 <Text style={styles.removeIcon}>⊖</Text>
               </TouchableOpacity>
               <TextInput
@@ -252,8 +266,8 @@ type Allergy = {
                 onChangeText={(text) => handleAllergyChange(allergy.id, text)}
               />
               <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => handleAllergyChange(allergy.id, '')}
+                style={styles.clearIcon}
+                onPress={() => handleRemoveAllergy(allergy.id)}
               >
                 <Text style={styles.clearIcon}>✕</Text>
               </TouchableOpacity>

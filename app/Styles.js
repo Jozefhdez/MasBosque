@@ -1,6 +1,12 @@
 import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
+    containerSos: {
+        flex: 1,
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        paddingTop: 60,
+        },
     container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -13,9 +19,17 @@ export default StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: '8%',
-    paddingTop: '5%',
     paddingBottom: 20,
     },
+    headerLogin: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        paddingHorizontal: '8%',
+        paddingTop: '10%',
+        paddingBottom: 20,
+        },
     backButton: {
     width: 40,
     height: 40,
@@ -145,7 +159,7 @@ export default StyleSheet.create({
     marginLeft: 20,
     },
 
-    scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
+    scrollContainer: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 30, paddingBottom: 40 },
     header: { alignItems: 'center', marginBottom: 40 },
     logo: { fontSize: 32, fontWeight: '700' },
     logoPlus: { color: '#2D5016', fontSize: 32, fontWeight: '700' },
@@ -310,7 +324,10 @@ export default StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     },
-
+    scrollContainerModify: {
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+    },
     scrollContainerProfile: {
     paddingHorizontal: 24,
     paddingBottom: 40,
@@ -461,6 +478,34 @@ export default StyleSheet.create({
       marginTop: -8,
       paddingLeft: '30%',
     },
+     checkbox: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: '#2D5016',
+        marginRight: 5,
+        marginTop: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      checkboxFilled: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#2D5016',
+      },
+      termsText: {
+        flex: 1,
+        fontSize: 13,
+        color: '#666',
+        lineHeight: 20,
+      },
+      termsLink: {
+        color: '#2D5016',
+        fontWeight: '600',
+        textDecorationLine: 'underline',
+      },
     registerButton: {
       width: '100%',
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
