@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
 
 type Allergy = {
@@ -18,57 +18,45 @@ type Allergy = {
 
 export default function CompleteProfile() {
   const router = useRouter();
-  const { profileId } = useLocalSearchParams<{ profileId?: string }>();
 
-  const [resolvedProfileId, setResolvedProfileId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [profileId, setProfileId] = useState<string | null>(null);
+
   const [allergies, setAllergies] = useState<Allergy[]>([
     { id: '1', value: '' },
   ]);
 
-  
-  useEffect(() => {
-    const resolveProfileId = async () => {
-      if (typeof profileId === 'string' && profileId.length > 0) {
-        setResolvedProfileId(profileId);
-        return;
-      }
-
-      const { data, error } = await supabase.auth.getUser();
-      if (error) {
-        console.log('Error en auth.getUser:', error);
-        return;
-      }
-      if (data?.user?.id) {
-        setResolvedProfileId(data.user.id);
-      }
-    };
-
-    resolveProfileId();
-  }, [profileId]);
-
   useEffect(() => {
     const loadProfile = async () => {
-      if (!resolvedProfileId) return;
+      const { data, error } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
-        .from('users')
-        .select('name, last_name')
-        .eq('id', resolvedProfileId)
-        .single();
-
-      if (error) {
-        console.log('Error cargando perfil:', error);
+      if (error || !data?.user) {
+        console.log('auth.getUser error:', error);
+        Alert.alert('Error', 'No se pudo obtener el usuario actual.');
         return;
       }
 
-      if (data) {
-        setUserName(`${data.name} ${data.last_name}`.trim());
+      const authId = data.user.id;
+      setProfileId(authId);
+
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('name, last_name')
+        .eq('id', authId)
+        .single();
+
+      if (profileError) {
+        console.log('Error cargando perfil desde users:', profileError);
+        return;
+      }
+
+      if (profile) {
+        setUserName(`${profile.name} ${profile.last_name}`.trim());
       }
     };
 
     loadProfile();
-  }, [resolvedProfileId]);
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -104,13 +92,16 @@ export default function CompleteProfile() {
       return;
     }
 
-    if (!resolvedProfileId) {
-      Alert.alert('Error', 'No se pudo obtener el usuario actual.');
+    if (!profileId) {
+      Alert.alert(
+        'Error',
+        'No se pudo obtener el usuario actual (profileId es nulo).'
+      );
       return;
     }
 
     const rows = validAllergies.map(a => ({
-      profile_id: resolvedProfileId,
+      profile_id: profileId,
       description: a.value.trim(),
     }));
 
@@ -118,12 +109,14 @@ export default function CompleteProfile() {
 
     if (error) {
       console.log('Error al insertar alergias:', error);
-      Alert.alert('Error', 'No se pudieron guardar tus alergias.');
+      Alert.alert(
+        'Error',
+        'No se pudieron guardar tus alergias.\n\n' + JSON.stringify(error, null, 2)
+      );
       return;
     }
 
     console.log('Perfil completado:', { userName, allergies: validAllergies });
-
     router.replace('/sos');
   };
 

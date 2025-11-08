@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
 
+// Validaciones
 const validateName = (name: string) =>
   /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(name.trim()) && name.trim() !== '';
 
@@ -28,13 +29,14 @@ const validatePassword = (password: string) =>
 
 export default function Register() {
   const router = useRouter();
-  const [firstName, setFirstName]       = useState('');
-  const [lastName, setLastName]         = useState('');
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+
+  const [firstName, setFirstName]         = useState('');
+  const [lastName, setLastName]           = useState('');
+  const [email, setEmail]                 = useState('');
+  const [password, setPassword]           = useState('');
+  const [showPassword, setShowPassword]   = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [error, setError]               = useState('');
+  const [error, setError]                 = useState('');
 
   const handleBack = () => {
     router.back();
@@ -71,7 +73,6 @@ export default function Register() {
     }
 
     try {
-      // REGISTRO EN AUTH
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -94,7 +95,7 @@ export default function Register() {
         .from('users')
         .insert([
           {
-            id: authId,                   // FK a auth.users.id
+            id: authId,
             name: firstName.trim(),
             last_name: lastName.trim(),
             role: 'user',
@@ -108,9 +109,11 @@ export default function Register() {
       }
 
       alert('¡Registro exitoso! Ahora completa tu información.');
+
       router.push('/completeProfile');
     } catch (err: any) {
       console.error('Error inesperado en registro:', err);
+      setError(err.message || 'Error inesperado');
       alert('Error inesperado: ' + err.message);
     }
   };
@@ -137,6 +140,7 @@ export default function Register() {
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Logo */}
         <View style={styles.header}>
           <Text style={styles.logo}>
             <Text style={styles.logoPlus}>+</Text>
@@ -262,10 +266,12 @@ export default function Register() {
           </TouchableOpacity>
         </View>
 
+        {/* Botón Registrarse */}
         <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
           <Text style={styles.registerButtonText}>Registrarse</Text>
         </TouchableOpacity>
 
+        {/* Ir al login */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>¿Ya tienes cuenta? </Text>
           <TouchableOpacity onPress={handleLoginRedirect}>
@@ -279,6 +285,7 @@ export default function Register() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F0' },
+
   headerLogo: {
     width: '100%',
     flexDirection: 'row',
@@ -295,20 +302,25 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   backIcon: { fontSize: 28, color: '#000' },
+
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
     paddingBottom: 40,
   },
+
   header: { alignItems: 'center', marginBottom: 40 },
   logo: { fontSize: 32, fontWeight: '700' },
   logoPlus: { color: '#2D5016', fontSize: 32, fontWeight: '700' },
   logoBosque: { color: '#2D5016', fontSize: 32, fontWeight: '700' },
   logoManu: { fontSize: 32, fontWeight: '700', color: '#000', marginTop: -8 },
+
   form: { marginBottom: 24 },
+
   inputContainer: { marginBottom: 20 },
   label: { fontSize: 14, fontWeight: '600', color: '#000', marginBottom: 8 },
+
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -318,9 +330,11 @@ const styles = StyleSheet.create({
     height: 52,
   },
   input: { flex: 1, fontSize: 16, color: '#000' },
+
   iconButton: { padding: 8 },
   clearIcon: { fontSize: 18, color: '#666' },
   eyeIcon: { fontSize: 20 },
+
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -350,6 +364,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
+
   registerButton: {
     backgroundColor: '#2D5016',
     borderRadius: 12,
@@ -360,6 +375,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   registerButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { fontSize: 14, color: '#666' },
   loginText: { fontSize: 14, color: '#2D5016', fontWeight: '600' },
