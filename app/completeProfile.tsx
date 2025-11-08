@@ -63,7 +63,7 @@ export default function CompleteProfile() {
   };
 
   const handleAddPhoto = () => {
-    Alert.alert('Agregar foto', 'Funcionalidad de cámara/galería próximamente');
+    Alert.alert('Agregar foto');
   };
 
   const handleRemoveAllergy = (id: string) => {
@@ -95,7 +95,6 @@ export default function CompleteProfile() {
     if (!profileId) {
       Alert.alert(
         'Error',
-        'No se pudo obtener el usuario actual (profileId es nulo).'
       );
       return;
     }
