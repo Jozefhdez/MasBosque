@@ -3,12 +3,11 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   StatusBar,
   ScrollView,
   Image,
   Alert,
-  ActivityIndicator,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
