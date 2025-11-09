@@ -20,16 +20,13 @@ const Profile = () => {
   const [userName, setUserName] = useState<string>('');
   const [allergies, setAllergies] = useState<string[]>([]);
 
-  // Navegación segura: verificar sesión al montar
   useEffect(() => {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session) {
-        // No hay sesión → enviar al inicio
         router.replace('/login');
       } else {
         setUser(data.session.user);
-        // Fetch profile data
         const authId = data.session.user.id;
         const { data: profile } = await supabase
           .from('users')
@@ -49,7 +46,6 @@ const Profile = () => {
 
     checkSession();
 
-    // Escuchar cambios en sesión (logout o expiración)
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         router.replace('/login');
@@ -63,7 +59,6 @@ const Profile = () => {
     };
   }, [router]);
 
-  // Fetch user profile when session is checked
   const handleBack = () => {
     router.back();
   };
@@ -111,21 +106,17 @@ const Profile = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Obtener usuario actual
               const { data: { user }, error: userError } = await supabase.auth.getUser();
               if (userError || !user) throw new Error('No se pudo obtener el usuario actual');
 
-              // Registrar la solicitud
               const { error: insertError } = await supabase
                 .from('account_deletion_requests')
                 .insert({ user_id: user.id });
 
               if (insertError) throw insertError;
 
-              // Cerrar sesión
               await supabase.auth.signOut();
 
-              // Avisar al usuario
               Alert.alert('Cuenta en proceso de eliminación', 'Tu cuenta será eliminada a la brevedad.');
               router.replace('/login');
             } catch (error: any) {
@@ -138,7 +129,6 @@ const Profile = () => {
     );
   };
 
-     // 👉 Conditional rendering happens here, after all hooks
       if (!sessionChecked) {
         return (
           <View style={styles.loadingContainer}>

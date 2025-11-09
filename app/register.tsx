@@ -25,7 +25,6 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // ✅ Redirigir si ya hay sesión activa
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -65,7 +64,6 @@ export default function Register() {
       }
 
       if (data.user) {
-        // Guarda datos adicionales en tu tabla `users`
         const { error: insertError } = await supabase.from('users').insert([
           {
             user_id: data.user.id,

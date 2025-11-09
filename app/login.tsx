@@ -54,7 +54,6 @@ export default function Login() {
         return;
       }
 
-      // Revisa si ya tiene alergias guardadas
       const { data: existingAllergies, error: allergiesError } = await supabase
         .from('allergies')
         .select('id')
@@ -88,7 +87,7 @@ export default function Login() {
     setError('');
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'exp://localhost:19000/reset-password', // Cambia según tu deep link
+        redirectTo: 'exp://localhost:19000/reset-password', 
       });
 
       if (error) {

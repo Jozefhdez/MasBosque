@@ -45,7 +45,6 @@ export default function CompleteProfile() {
           setUserName(`${profile.name} ${profile.last_name}`.trim());
         }
 
-        // Cargar alergias existentes
         const { data: existingAllergies, error: allergiesError } = await supabase
           .from('allergies')
           .select('id, description')
@@ -53,12 +52,10 @@ export default function CompleteProfile() {
 
         if (!allergiesError && existingAllergies && existingAllergies.length > 0) {
           setAllergies(existingAllergies.map(a => ({ id: a.id, value: a.description })));
-          // Si ya tiene alergias, saltar a SOS directamente
           router.replace('/sos');
           return;
         }
 
-        // Si no hay alergias, dejamos un campo vacío inicial para edición
         setAllergies([{ id: 'temp-1', value: '' }]);
       } finally {
         setLoading(false);
