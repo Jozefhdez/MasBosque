@@ -64,9 +64,10 @@ export default function Register() {
       }
 
       if (data.user) {
+        // Crear fila en la tabla users con el mismo id que auth.users.id
         const { error: insertError } = await supabase.from('users').insert([
           {
-            user_id: data.user.id,
+            id: data.user.id,
             name: firstName,
             last_name: lastName,
             role: 'user',
@@ -80,7 +81,13 @@ export default function Register() {
       }
 
       Alert.alert('Cuenta creada', 'Revisa tu correo para confirmar tu cuenta.');
-      router.replace('/completeProfile');
+      // Si no hay sesión todavía, dirigir a login; si hay sesión, ir a completar perfil
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session) {
+        router.replace('/completeProfile');
+      } else {
+        router.replace('/login');
+      }
     } catch (err: any) {
       console.error(err);
       setError('Ocurrió un error inesperado.');
