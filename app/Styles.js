@@ -116,6 +116,11 @@ export default StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
     },
+    userAvatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    },
     userName: {
     fontSize: 18,
     fontWeight: '600',
@@ -494,6 +499,12 @@ export default StyleSheet.create({
         height: 12,
         borderRadius: 6,
         backgroundColor: '#2D5016',
+      },
+      termsContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingHorizontal: 4,
       },
       termsText: {
         flex: 1,

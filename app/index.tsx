@@ -4,9 +4,6 @@ import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
 
 export default function Index() {
-<<<<<<< HEAD
-  return <Redirect href="/initial" />;
-=======
   const router = useRouter();
   const [booting, setBooting] = useState(true);
 
@@ -41,5 +38,4 @@ export default function Index() {
       <ActivityIndicator size="large" />
     </View>
   );
->>>>>>> bc8f473 (mmk)
 }

@@ -21,17 +21,50 @@ export default function SOS() {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  
+  type UserProfile = {
+    id?: string;
+    name?: string;
+    last_name?: string;
+    [key: string]: any;
+  };
+
+  const [user, setUser] = useState<any | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  const getInitials = (first?: string, last?: string) => {
+    const a = (first?.trim()?.[0] || '').toUpperCase();
+    const b = (last?.trim()?.[0] || '').toUpperCase();
+    const ab = (a + b).trim();
+    if (ab) return ab;
+    // fallback: try splitting full name in name
+    const parts = (first || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (parts.length === 1) return parts[0][0]?.toUpperCase() || '?';
+    return '?';
+  };
 
   // Session check effect
   useEffect(() => {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session) {
-        router.replace('/initial');
+        router.replace('/login');
       } else {
         setUser(data.session.user);
+        
+        // Fetch user profile
+        const u = data.session.user;
+        if (u) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', u.id)
+            .single();
+          if (!profileError && profileData) {
+            setProfile(profileData as UserProfile);
+          }
+        }
       }
       setSessionChecked(true);
     };
@@ -40,7 +73,7 @@ export default function SOS() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        router.replace('/initial');
+        router.replace('/login');
       } else {
         setUser(session.user);
       }
@@ -64,21 +97,6 @@ export default function SOS() {
       return () => pulse.stop();
     }
   }, [isSOSActive]);
-
-  // Fetch user profile when session is checked
-  const fetchUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user);
-
-    if (user) {
-      const { data } = await supabase
-        .from('users')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setProfile(data);
-    }
-  };
 
   const handleProfile = () => {
     router.push('/profile');
@@ -117,7 +135,7 @@ export default function SOS() {
     })
   ).current;
 
-  const getHexagonPoints = (centerX, centerY, radius) => {
+  const getHexagonPoints = (centerX: number, centerY: number, radius: number) => {
     const points = [];
     for (let i = 0; i < 6; i++) {
       const angle = (Math.PI / 3) * i - Math.PI / 2;
@@ -226,9 +244,13 @@ export default function SOS() {
           </View>
 
           <TouchableOpacity style={styles.userCard} onPress={handleProfile}>
-            <View style={styles.userAvatar} />
+            <View style={styles.userAvatar}>
+              <Text style={styles.userAvatarText}>
+                {getInitials(profile?.name, profile?.last_name)}
+              </Text>
+            </View>
             <Text style={styles.userName}>
-              {profile?.name || user?.name || 'Usuario'}
+              {profile ? `${profile.name ?? ''} ${profile.last_name ?? ''}`.trim() : 'Usuario'}
             </Text>
           </TouchableOpacity>
         </View>

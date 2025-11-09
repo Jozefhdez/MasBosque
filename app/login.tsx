@@ -16,31 +16,13 @@ import { useRouter } from 'expo-router';
 import { supabase } from './lib/supabaseClient';
 import styles from './Styles';
 
-export default function Login(): JSX.Element {
+export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-
-<<<<<<< HEAD
-  // Navegación segura: redirigir si ya hay sesión
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        if (session) {
-          // Si hay sesión activa, ir directamente a /sos
-          router.replace('/sos');
-        }
-      } catch (err) {
-        console.error('Error al verificar sesión:', err);
-      }
-    };
-    checkSession();
-  }, []);
 
   const handleBack = (): void => {
     router.back();
@@ -51,41 +33,7 @@ export default function Login(): JSX.Element {
     if (!email.trim() || !password.trim()) {
       setError('Por favor ingresa tu correo y contraseña.');
       return;
-=======
-  const handleLogin  = async () => {
-    try {
-      // Si ya hay sesión, decide la ruta por datos en BD
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.log('Error obteniendo sesión:', sessionError);
-      }
-
-      const user = sessionData?.session?.user;
-
-      if (!user) {
-        // Si no hay sesión, manda a registrarse o a un login completo con email/pass
-        router.push('/register');
-        return;
-      }
-
-      // Revisa si ya tiene alergias guardadas
-      const { data: existingAllergies, error: allergiesError } = await supabase
-        .from('allergies')
-        .select('id')
-        .eq('profile_id', user.id)
-        .limit(1);
-
-      if (!allergiesError && existingAllergies && existingAllergies.length > 0) {
-        router.push('/sos');
-      } else {
-        router.push('/completeProfile');
-      }
-    } catch (e) {
-      console.log('Fallo al decidir navegación post-login:', e);
-      router.push('/completeProfile');
->>>>>>> bc8f473 (mmk)
     }
-  }
 
     setLoading(true);
     try {
@@ -96,8 +44,27 @@ export default function Login(): JSX.Element {
 
       if (error) {
         setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      if (!data.user) {
+        setError('No se pudo obtener el usuario.');
+        setLoading(false);
+        return;
+      }
+
+      // Revisa si ya tiene alergias guardadas
+      const { data: existingAllergies, error: allergiesError } = await supabase
+        .from('allergies')
+        .select('id')
+        .eq('profile_id', data.user.id)
+        .limit(1);
+
+      if (!allergiesError && existingAllergies && existingAllergies.length > 0) {
+        router.replace('/sos');
       } else {
-        router.push('/sos'); // navegación segura
+        router.replace('/completeProfile');
       }
     } catch (err) {
       setError('Ocurrió un error inesperado.');
