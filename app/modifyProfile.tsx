@@ -23,10 +23,8 @@ const ModifyProfile = () => {
   const [sessionChecked, setSessionChecked] = useState(false);
   const [user, setUser] = useState<any | null>(null);
 
-  // Cargar perfil del usuario
   const loadProfile = async (uid: string) => {
     try {
-      // Perfil (nombre y apellido)
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('name,last_name')
@@ -37,7 +35,6 @@ const ModifyProfile = () => {
         setLastName(profile.last_name || '');
       }
 
-      // Correo desde auth
       const { data: authData } = await supabase.auth.getUser();
       setEmail(authData?.user?.email || '');
 

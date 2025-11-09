@@ -20,7 +20,6 @@ const Profile = () => {
   const [userName, setUserName] = useState<string>('');
   const [allergies, setAllergies] = useState<string[]>([]);
 
-  // Función separada para cargar datos del perfil
   const loadUserProfile = async (userId: string) => {
     try {
       // Fetch user profile data
@@ -75,7 +74,6 @@ const Profile = () => {
         router.replace('/initial');
       } else {
         setUser(session.user);
-        // Solo recargar datos si cambió el usuario, no en cada evento
         if (session.user.id !== user?.id) {
           await loadUserProfile(session.user.id);
         }
@@ -112,7 +110,7 @@ const Profile = () => {
               const { error } = await supabase.auth.signOut();
               if (error) throw error;
               console.log('Sesión cerrada correctamente');
-              router.replace('/login');
+              router.replace('/initial');
             } catch (error: any) {
               console.error('Error al cerrar sesión:', error?.message || error);
               Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta nuevamente.');

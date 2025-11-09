@@ -53,6 +53,12 @@ export default function Register() {
     }
 
     try {
+      // If there's an active session (old user), sign out to avoid mixing sessions
+      const { data: s } = await supabase.auth.getSession();
+      if (s?.session) {
+        await supabase.auth.signOut();
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -81,9 +87,14 @@ export default function Register() {
       }
 
       Alert.alert('Cuenta creada', 'Revisa tu correo para confirmar tu cuenta.');
-      // Si no hay sesión todavía, dirigir a login; si hay sesión, ir a completar perfil
+      // Navigate based on session. Some projects auto-confirm and create a session, others require email confirmation
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session) {
+      // If there is a session but it's not the just-created user, sign out and send to login
+      if (sessionData?.session && data.user && sessionData.session.user.id !== data.user.id) {
+        await supabase.auth.signOut();
+      }
+      const { data: finalSession } = await supabase.auth.getSession();
+      if (finalSession?.session) {
         router.replace('/completeProfile');
       } else {
         router.replace('/login');

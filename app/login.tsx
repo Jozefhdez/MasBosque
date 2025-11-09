@@ -54,6 +54,25 @@ export default function Login() {
         return;
       }
 
+      // Ensure a users row exists for this auth user (first login after email confirm, etc.)
+      try {
+        const { data: existingUserRow, error: checkErr } = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', data.user.id)
+          .limit(1);
+        if (!checkErr && (!existingUserRow || existingUserRow.length === 0)) {
+          const { error: insertMissing } = await supabase
+            .from('users')
+            .insert([{ id: data.user.id, name: '', last_name: '', role: 'user' }]);
+          if (insertMissing) {
+            console.log('Failed to create missing users row:', insertMissing);
+          }
+        }
+      } catch (e) {
+        console.log('Error ensuring users row exists:', e);
+      }
+
       const { data: existingAllergies, error: allergiesError } = await supabase
         .from('allergies')
         .select('id')
