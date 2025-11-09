@@ -13,9 +13,11 @@ export default function Index() {
         const { data: sessionData } = await supabase.auth.getSession();
         const user = sessionData?.session?.user;
         if (!user) {
-          router.replace('/login');
+          // Sin sesión → mostrar pantalla inicial de bienvenida
+          router.replace('/initial');
           return;
         }
+        // Con sesión → verificar si tiene alergias
         const { data: al } = await supabase
           .from('allergies')
           .select('id')

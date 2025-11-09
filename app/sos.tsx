@@ -49,7 +49,7 @@ export default function SOS() {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session) {
-        router.replace('/login');
+        router.replace('/initial');
       } else {
         setUser(data.session.user);
         
@@ -73,7 +73,7 @@ export default function SOS() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        router.replace('/login');
+        router.replace('/initial');
       } else {
         setUser(session.user);
       }

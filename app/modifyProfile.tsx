@@ -15,61 +15,75 @@ import styles from './Styles';
 import { supabase } from './lib/supabaseClient';
 
 const ModifyProfile = () => {
-    const [firstName, setFirstName] = useState('Juan Alfredo');
-      const [lastName, setLastName] = useState('Peréz Gonzalez');
-      const [email, setEmail] = useState('juafred@gmail.com');
-      const [allergies, setAllergies] = useState<Allergy[]>([
-        { id: '1', value: 'Ibuprofeno' },
-        { id: '2', value: 'Ateips' },
-        { id: '3', value: 'Epinefrina' },
-      ]);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [allergies, setAllergies] = useState<Allergy[]>([]);
   const router = useRouter();
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any | null>(null);
 
-    // Navegación segura: verificar sesión al montar
-    useEffect(() => {
-      const checkSession = async () => {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data.session) {
-          // No hay sesión → enviar al inicio
-          router.replace('/initial');
-        } else {
-          setUser(data.session.user);
-        }
-        setSessionChecked(true);
-      };
+  // Cargar perfil del usuario
+  const loadProfile = async (uid: string) => {
+    try {
+      // Perfil (nombre y apellido)
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('name,last_name')
+        .eq('id', uid)
+        .single();
+      if (!profileError && profile) {
+        setFirstName(profile.name || '');
+        setLastName(profile.last_name || '');
+      }
 
-      checkSession();
+      // Correo desde auth
+      const { data: authData } = await supabase.auth.getUser();
+      setEmail(authData?.user?.email || '');
 
-      // Escuchar cambios en sesión (logout o expiración)
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (!session) {
-          router.replace('/initial');
-        } else {
-          setUser(session.user);
-        }
-      });
+      // Alergias
+      const { data: al, error: alError } = await supabase
+        .from('allergies')
+        .select('id, description')
+        .eq('profile_id', uid);
+      if (!alError && al) {
+        setAllergies(al.map(a => ({ id: a.id, value: a.description })));
+      } else {
+        setAllergies([]);
+      }
+    } catch (e) {
+      console.log('Error loading profile in modifyProfile:', e);
+    }
+  };
 
-      return () => {
-        listener.subscription.unsubscribe();
-      };
-    }, []);
+  // Verificar sesión y cargar datos
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) {
+        router.replace('/initial');
+      } else {
+        setUser(data.session.user);
+        await loadProfile(data.session.user.id);
+      }
+      setSessionChecked(true);
+    };
 
-    // Fetch user profile when session is checked
-      const fetchUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
+    checkSession();
 
-        if (user) {
-          const { data } = await supabase
-            .from('users')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
-          setProfile(data);
-        }
-      };
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!session) {
+        router.replace('/initial');
+      } else {
+        setUser(session.user);
+        await loadProfile(session.user.id);
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -108,7 +122,8 @@ type Allergy = {
     ));
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
+    if (!user) return;
     // Validaciones
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
@@ -121,10 +136,37 @@ type Allergy = {
       return;
     }
 
-    console.log('Guardar cambios:', { firstName, lastName, email, allergies: validAllergies });
-    Alert.alert('Éxito', 'Cambios guardados correctamente', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
+    try {
+      // Actualizar perfil (tabla users)
+      const { error: updError } = await supabase
+        .from('users')
+        .update({ name: firstName.trim(), last_name: lastName.trim() })
+        .eq('id', user.id);
+      if (updError) throw updError;
+
+      // Reemplazar alergias: eliminar e insertar
+      const { error: delError } = await supabase
+        .from('allergies')
+        .delete()
+        .eq('profile_id', user.id);
+      if (delError) throw delError;
+
+      const rows = validAllergies.map(a => ({
+        profile_id: user.id,
+        description: a.value.trim(),
+      }));
+      const { error: insError } = await supabase
+        .from('allergies')
+        .insert(rows);
+      if (insError) throw insError;
+
+      Alert.alert('Éxito', 'Cambios guardados correctamente', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (e: any) {
+      console.log('Error guardando cambios:', e);
+      Alert.alert('Error', e?.message || 'No se pudieron guardar los cambios');
+    }
   };
 
   const handleChangePassword = () => {
@@ -255,7 +297,8 @@ type Allergy = {
             <View key={allergy.id} style={styles.allergyRow}>
               <TouchableOpacity
                 style={styles.removeButton}
-                >
+                onPress={() => handleRemoveAllergy(allergy.id)}
+              >
                 <Text style={styles.removeIcon}>⊖</Text>
               </TouchableOpacity>
               <TextInput
@@ -265,10 +308,7 @@ type Allergy = {
                 value={allergy.value}
                 onChangeText={(text) => handleAllergyChange(allergy.id, text)}
               />
-              <TouchableOpacity
-                style={styles.clearIcon}
-                onPress={() => handleRemoveAllergy(allergy.id)}
-              >
+              <TouchableOpacity onPress={() => handleRemoveAllergy(allergy.id)}>
                 <Text style={styles.clearIcon}>✕</Text>
               </TouchableOpacity>
             </View>

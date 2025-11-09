@@ -20,37 +20,65 @@ const Profile = () => {
   const [userName, setUserName] = useState<string>('');
   const [allergies, setAllergies] = useState<string[]>([]);
 
+  // Función separada para cargar datos del perfil
+  const loadUserProfile = async (userId: string) => {
+    try {
+      // Fetch user profile data
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('name,last_name')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+      } else if (profile) {
+        const fullName = `${profile.name || ''} ${profile.last_name || ''}`.trim();
+        console.log('Profile loaded:', fullName);
+        setUserName(fullName);
+      } else {
+        console.log('No profile found for user:', userId);
+      }
+
+      // Fetch allergies
+      const { data: al, error: allergiesError } = await supabase
+        .from('allergies')
+        .select('description')
+        .eq('profile_id', userId);
+      
+      if (allergiesError) {
+        console.error('Error fetching allergies:', allergiesError);
+      } else if (al) {
+        setAllergies(al.map(x => x.description));
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session) {
-        router.replace('/login');
+        router.replace('/initial');
       } else {
         setUser(data.session.user);
-        const authId = data.session.user.id;
-        const { data: profile } = await supabase
-          .from('users')
-          .select('name,last_name')
-          .eq('id', authId)
-          .single();
-        if (profile) setUserName(`${profile.name} ${profile.last_name}`.trim());
-
-        const { data: al } = await supabase
-          .from('allergies')
-          .select('description')
-          .eq('profile_id', authId);
-        if (al) setAllergies(al.map(x => x.description));
+        await loadUserProfile(data.session.user.id);
       }
       setSessionChecked(true);
     };
 
     checkSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!session) {
-        router.replace('/login');
+        router.replace('/initial');
       } else {
         setUser(session.user);
+        // Solo recargar datos si cambió el usuario, no en cada evento
+        if (session.user.id !== user?.id) {
+          await loadUserProfile(session.user.id);
+        }
       }
     });
 
@@ -118,7 +146,7 @@ const Profile = () => {
               await supabase.auth.signOut();
 
               Alert.alert('Cuenta en proceso de eliminación', 'Tu cuenta será eliminada a la brevedad.');
-              router.replace('/login');
+              router.replace('/initial');
             } catch (error: any) {
               console.error('Error al solicitar eliminación:', error?.message || error);
               Alert.alert('Error', 'No se pudo solicitar la eliminación. Intenta nuevamente.');
