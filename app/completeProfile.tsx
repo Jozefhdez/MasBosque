@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from './lib/supabaseClient';
+import styles from './Styles';
 
 type Allergy = {
   id: string;
@@ -18,52 +19,65 @@ type Allergy = {
 
 export default function CompleteProfile() {
   const router = useRouter();
+    const [sessionChecked, setSessionChecked] = useState(false);
+    const [user, setUser] = useState(null);
 
-  const [userName, setUserName] = useState('');
-  const [profileId, setProfileId] = useState<string | null>(null);
+    // Navegación segura: verificar sesión al montar
+    useEffect(() => {
+      const checkSession = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          // No hay sesión → enviar al inicio
+          router.replace('/initial');
+        } else {
+          setUser(data.session.user);
+        }
+        setSessionChecked(true);
+      };
 
+      checkSession();
+
+      // Escuchar cambios en sesión (logout o expiración)
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
+          router.replace('/initial');
+        } else {
+          setUser(session.user);
+        }
+      });
+
+      return () => {
+        listener.subscription.unsubscribe();
+      };
+    }, []);
+
+  // Fetch user profile when session is checked
+      const fetchUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (user) {
+          const { data } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          setProfile(data);
+        }
+      };
+
+  const [userName] = useState('Juan Alfredo Peréz');
   const [allergies, setAllergies] = useState<Allergy[]>([
-    { id: '1', value: '' },
+    { id: '1', value: 'Ibuprofeno' },
+    { id: '2', value: 'Ateips' },
+    { id: '3', value: 'Epinefrina' },
   ]);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error || !data?.user) {
-        console.log('auth.getUser error:', error);
-        Alert.alert('Error', 'No se pudo obtener el usuario actual.');
-        return;
-      }
-
-      const authId = data.user.id;
-      setProfileId(authId);
-
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('name, last_name')
-        .eq('id', authId)
-        .single();
-
-      if (profileError) {
-        console.log('Error cargando perfil desde users:', profileError);
-        return;
-      }
-
-      if (profile) {
-        setUserName(`${profile.name} ${profile.last_name}`.trim());
-      }
+const handleBack = () => {
+      router.back();
     };
-
-    loadProfile();
-  }, []);
-
-  const handleBack = () => {
-    router.back();
-  };
-
   const handleAddPhoto = () => {
-    Alert.alert('Agregar foto');
+    Alert.alert('Agregar foto', 'Funcionalidad de cámara/galería próximamente');
   };
 
   const handleRemoveAllergy = (id: string) => {
@@ -81,37 +95,11 @@ export default function CompleteProfile() {
     ));
   };
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     const validAllergies = allergies.filter(a => a.value.trim() !== '');
 
     if (validAllergies.length === 0) {
-      Alert.alert(
-        'Atención',
-        'Por favor agrega al menos una alergia o medicamento contraindicado.'
-      );
-      return;
-    }
-
-    if (!profileId) {
-      Alert.alert(
-        'Error',
-      );
-      return;
-    }
-
-    const rows = validAllergies.map(a => ({
-      profile_id: profileId,
-      description: a.value.trim(),
-    }));
-
-    const { error } = await supabase.from('allergies').insert(rows);
-
-    if (error) {
-      console.log('Error al insertar alergias:', error);
-      Alert.alert(
-        'Error',
-        'No se pudieron guardar tus alergias.\n\n' + JSON.stringify(error, null, 2)
-      );
+      Alert.alert('Atención', 'Por favor agrega al menos una alergia o medicamento contraindicado.');
       return;
     }
 
@@ -119,25 +107,34 @@ export default function CompleteProfile() {
     router.replace('/sos');
   };
 
+     // 👉 Conditional rendering happens here, after all hooks
+      if (!sessionChecked) {
+        return (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2D5016" />
+          </View>
+        );
+      }
+
   return (
-    <View style={styles.container}>
-      {/* Header con botón de retroceso */}
+    <View style={styles.containerModify}>
+    {/* Header con botón de retroceso */}
       <View style={styles.headerLogo}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+            <Text style={styles.backIcon}>←</Text>
+          </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.scrollContainer}
+        style={styles.contentComplete}
+        contentContainerStyle={styles.scrollContainerComplete}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.userName}>{userName}</Text>
+        <Text style={styles.userNameComplete}>{userName}</Text>
         <Text style={styles.sectionTitle}>Agregar foto de perfil</Text>
 
         <TouchableOpacity
-          style={styles.avatarContainer}
+          style={styles.header}
           onPress={handleAddPhoto}
           activeOpacity={0.7}
         >
@@ -150,7 +147,7 @@ export default function CompleteProfile() {
 
         <Text style={styles.sectionTitle}>Alergias o medicamento contraindicados</Text>
 
-        <View style={styles.allergiesContainer}>
+        <View style={styles.form}>
           {allergies.map((allergy) => (
             <View key={allergy.id} style={styles.allergyRow}>
               <TouchableOpacity
@@ -188,178 +185,9 @@ export default function CompleteProfile() {
           style={styles.continueButton}
           onPress={handleContinue}
         >
-          <Text style={styles.continueButtonText}>Continuar</Text>
+          <Text style={styles.loginButtonText}>Continuar</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F0',
-  },
-  headerLogo: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: '8%',
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: '#000',
-  },
-  header: {
-    backgroundColor: '#2C2C2C',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  content: {
-    flex: 1,
-    paddingTop: 40,
-  },
-  scrollContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  avatar: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#D8D8D0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  editIcon: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#F5F5F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#D8D8D0',
-  },
-  editIconText: {
-    fontSize: 24,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#054324',
-    marginBottom: 16,
-  },
-  allergiesContainer: {
-    marginBottom: 32,
-  },
-  allergyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  removeButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  removeIcon: {
-    fontSize: 24,
-    color: '#666',
-  },
-  allergyInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    height: 48,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: '#000',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  clearButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#666',
-  },
-  addAllergyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingLeft: 4,
-  },
-  addIcon: {
-    fontSize: 24,
-    color: '#2D5016',
-    marginRight: 12,
-  },
-  addAllergyText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#2D5016',
-  },
-  continueButton: {
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#2D5016',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  continueButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

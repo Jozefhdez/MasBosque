@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,11 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import styles from './Styles';
+import { supabase } from './lib/supabaseClient';
 
 const ModifyProfile = () => {
     const [firstName, setFirstName] = useState('Juan Alfredo');
@@ -21,6 +24,52 @@ const ModifyProfile = () => {
         { id: '3', value: 'Epinefrina' },
       ]);
   const router = useRouter();
+  const [sessionChecked, setSessionChecked] = useState(false);
+  const [user, setUser] = useState(null);
+
+    // Navegación segura: verificar sesión al montar
+    useEffect(() => {
+      const checkSession = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          // No hay sesión → enviar al inicio
+          router.replace('/initial');
+        } else {
+          setUser(data.session.user);
+        }
+        setSessionChecked(true);
+      };
+
+      checkSession();
+
+      // Escuchar cambios en sesión (logout o expiración)
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!session) {
+          router.replace('/initial');
+        } else {
+          setUser(session.user);
+        }
+      });
+
+      return () => {
+        listener.subscription.unsubscribe();
+      };
+    }, []);
+
+    // Fetch user profile when session is checked
+      const fetchUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setUser(user);
+
+        if (user) {
+          const { data } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', user.id)
+            .single();
+          setProfile(data);
+        }
+      };
 
   const handleBack = () => {
     router.back();
@@ -101,33 +150,40 @@ type Allergy = {
     setNewPassword('');
     setConfirmPassword('');
   };
+   // 👉 Conditional rendering happens here, after all hooks
+    if (!sessionChecked) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2D5016" />
+        </View>
+      );
+    }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.containerModify}>
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
 
       {/* Header con botón de retroceso */}
-      <View style={styles.header}>
+      <View style={styles.headerModify}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContainerModify}
         showsVerticalScrollIndicator={true}
       >
         {/* Avatar con botón de editar */}
         <TouchableOpacity
-          style={styles.avatarContainer}
+          style={styles.avatarContainerModify}
           onPress={handleAddPhoto}
           activeOpacity={0.7}
         >
           <View style={styles.avatar}>
             {/* Placeholder - aquí iría la imagen del usuario */}
-            <Text style={styles.avatarEmoji}>🦅</Text>
             <View style={styles.editIconContainer}>
-              <Text style={styles.editIcon}>✏️</Text>
+              <Text style={styles.eyeIcon}>✏️</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -194,13 +250,12 @@ type Allergy = {
         {/* Sección de alergias */}
         <Text style={styles.sectionTitle}>Alergias o medicamento contraindicados</Text>
 
-        <View style={styles.allergiesContainer}>
+        <View style={styles.avatarContainer}>
           {allergies.map((allergy) => (
             <View key={allergy.id} style={styles.allergyRow}>
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => handleRemoveAllergy(allergy.id)}
-              >
+                >
                 <Text style={styles.removeIcon}>⊖</Text>
               </TouchableOpacity>
               <TextInput
@@ -211,8 +266,8 @@ type Allergy = {
                 onChangeText={(text) => handleAllergyChange(allergy.id, text)}
               />
               <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => handleAllergyChange(allergy.id, '')}
+                style={styles.clearIcon}
+                onPress={() => handleRemoveAllergy(allergy.id)}
               >
                 <Text style={styles.clearIcon}>✕</Text>
               </TouchableOpacity>
@@ -231,10 +286,10 @@ type Allergy = {
 
         {/* Botón Guardar cambios */}
         <TouchableOpacity
-          style={styles.saveButton}
+          style={styles.continueButton}
           onPress={handleSaveChanges}
         >
-          <Text style={styles.saveButtonText}>Guardar cambios</Text>
+          <Text style={styles.loginButtonText}>Guardar cambios</Text>
         </TouchableOpacity>
 
         {/* Divisor */}
@@ -301,197 +356,14 @@ type Allergy = {
 
         {/* Botón Cambiar contraseña */}
         <TouchableOpacity
-          style={styles.changePasswordButton}
+          style={styles.continueButton}
           onPress={handleChangePassword}
         >
-          <Text style={styles.changePasswordButtonText}>Cambiar contraseña</Text>
+          <Text style={styles.loginButtonText}>Cambiar contraseña</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F0',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#F5F5F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: 28,
-    color: '#000',
-  },
-  scrollContainer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  avatar: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#D8D8D0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  avatarEmoji: {
-    fontSize: 60,
-  },
-  editIconContainer: {
-    position: 'absolute',
-    bottom: 5,
-    right: 5,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#D8D8D0',
-  },
-  editIcon: {
-    fontSize: 20,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8E8E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: '#000',
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#666',
-    padding: 8,
-  },
-  eyeIcon: {
-    fontSize: 20,
-    padding: 8,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 16,
-  },
-  allergiesContainer: {
-    marginBottom: 24,
-  },
-  allergyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  removeButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  removeIcon: {
-    fontSize: 24,
-    color: '#666',
-  },
-  allergyInput: {
-    flex: 1,
-    backgroundColor: '#E8E8E0',
-    borderRadius: 8,
-    height: 48,
-    paddingHorizontal: 16,
-    fontSize: 15,
-    color: '#000',
-  },
-  clearButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  addAllergyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingLeft: 4,
-  },
-  addIcon: {
-    fontSize: 24,
-    color: '#2D5016',
-    marginRight: 12,
-  },
-  addAllergyText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#2D5016',
-  },
-  saveButton: {
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#D0D0C8',
-    marginVertical: 24,
-  },
-  passwordSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 20,
-  },
-  changePasswordButton: {
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  changePasswordButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
 
 export default ModifyProfile;
