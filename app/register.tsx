@@ -33,7 +33,7 @@ export default function Register() {
   const [lastName, setLastName]       = useState('');
   const [email, setEmail]             = useState('');
   const [password, setPassword]       = useState('');
-  const [allergies, setAllergies]     = useState('');
+  // Eliminado campo de alergias en el registro (se gestionará en completeProfile)
   const [error, setError]             = useState('');
   const [showPassword, setShowPassword]     = useState(false);
   const [acceptedTerms, setAcceptedTerms]   = useState(false);
@@ -66,7 +66,7 @@ export default function Register() {
         return;
       }
       const authId = authData.user.id;
-  // 2️⃣ Insertar en tabla users (id = auth.users.id)
+  // Insertar en tabla users (id = auth.users.id)
       const { error: userError } = await supabase
         .from('users')
         .insert([
@@ -82,19 +82,6 @@ export default function Register() {
         setError(userError.message);
         alert('Ocurrió un error al guardar tus datos. Intenta de nuevo.');
         return;
-      }
-  // 3️⃣ Insertar alergias inicial (profile_id referencia users.id)
-      const allergyDescription = allergies.trim().length > 0 ? allergies.trim() : 'Ninguna';
-      const { error: allergiesError } = await supabase
-        .from('allergies')
-        .insert([
-          {
-            profile_id: authId,
-            description: allergyDescription,
-          },
-        ]);
-      if (allergiesError) {
-        console.error('Error al insertar en allergies:', allergiesError);
       }
   alert('¡Registro exitoso! Bienvenido/a ' + firstName + '. Ahora completa tu perfil.');
   router.push('/completeProfile');
@@ -232,28 +219,7 @@ export default function Register() {
             </View>
           </View>
 
-          {/* Alergias */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Alergias</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder='Escribe tus alergias o "Ninguna"'
-                placeholderTextColor="#999"
-                value={allergies}
-                onChangeText={setAllergies}
-                multiline
-              />
-              {allergies.length > 0 && (
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setAllergies('')}
-                >
-                  <Text style={styles.clearIcon}>✕</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          {/* Campo de alergias eliminado del registro */}
           <TouchableOpacity
             style={styles.termsContainer}
             onPress={() => setAcceptedTerms(!acceptedTerms)}
