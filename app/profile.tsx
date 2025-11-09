@@ -16,7 +16,9 @@ import styles from './Styles';
 const Profile = () => {
   const router = useRouter();
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
+  const [userName, setUserName] = useState<string>('');
+  const [allergies, setAllergies] = useState<string[]>([]);
 
   // Navegación segura: verificar sesión al montar
   useEffect(() => {
@@ -24,9 +26,23 @@ const Profile = () => {
       const { data, error } = await supabase.auth.getSession();
       if (error || !data.session) {
         // No hay sesión → enviar al inicio
-        router.replace('/initial');
+        router.replace('/login');
       } else {
         setUser(data.session.user);
+        // Fetch profile data
+        const authId = data.session.user.id;
+        const { data: profile } = await supabase
+          .from('users')
+          .select('name,last_name')
+          .eq('id', authId)
+          .single();
+        if (profile) setUserName(`${profile.name} ${profile.last_name}`.trim());
+
+        const { data: al } = await supabase
+          .from('allergies')
+          .select('description')
+          .eq('profile_id', authId);
+        if (al) setAllergies(al.map(x => x.description));
       }
       setSessionChecked(true);
     };
@@ -36,7 +52,7 @@ const Profile = () => {
     // Escuchar cambios en sesión (logout o expiración)
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
-        router.replace('/initial');
+        router.replace('/login');
       } else {
         setUser(session.user);
       }
@@ -45,23 +61,9 @@ const Profile = () => {
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   // Fetch user profile when session is checked
-      const fetchUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-
-        if (user) {
-          const { data } = await supabase
-            .from('users')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
-          setProfile(data);
-        }
-      };
-
   const handleBack = () => {
     router.back();
   };
@@ -88,8 +90,8 @@ const Profile = () => {
               if (error) throw error;
               console.log('Sesión cerrada correctamente');
               router.replace('/login');
-            } catch (error) {
-              console.error('Error al cerrar sesión:', error.message);
+            } catch (error: any) {
+              console.error('Error al cerrar sesión:', error?.message || error);
               Alert.alert('Error', 'No se pudo cerrar la sesión. Intenta nuevamente.');
             }
           },
@@ -126,8 +128,8 @@ const Profile = () => {
               // Avisar al usuario
               Alert.alert('Cuenta en proceso de eliminación', 'Tu cuenta será eliminada a la brevedad.');
               router.replace('/login');
-            } catch (error) {
-              console.error('Error al solicitar eliminación:', error.message);
+            } catch (error: any) {
+              console.error('Error al solicitar eliminación:', error?.message || error);
               Alert.alert('Error', 'No se pudo solicitar la eliminación. Intenta nuevamente.');
             }
           },
@@ -169,15 +171,19 @@ const Profile = () => {
 
         {/* Nombre del usuario */}
         <Text style={styles.userNameProfile}>
-          {user?.user_metadata?.full_name || 'Usuario sin nombre'}
+          {userName || 'Usuario'}
         </Text>
 
         {/* Información de alergias */}
         <View style={styles.infoContainer}>
           <Text style={styles.infoText}>Alergias o contraindicaciones:</Text>
-          <Text style={styles.allergyItem}>• Ibuprofeno</Text>
-          <Text style={styles.allergyItem}>• Aspirina</Text>
-          <Text style={styles.allergyItem}>• Epinefrina</Text>
+          {allergies.length === 0 ? (
+            <Text style={styles.allergyItem}>• Ninguna</Text>
+          ) : (
+            allergies.map((a, idx) => (
+              <Text key={idx} style={styles.allergyItem}>• {a}</Text>
+            ))
+          )}
         </View>
 
         {/* Botones de acción */}

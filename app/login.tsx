@@ -24,6 +24,7 @@ export default function Login(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+<<<<<<< HEAD
   // Navegación segura: redirigir si ya hay sesión
   useEffect(() => {
     const checkSession = async () => {
@@ -50,7 +51,41 @@ export default function Login(): JSX.Element {
     if (!email.trim() || !password.trim()) {
       setError('Por favor ingresa tu correo y contraseña.');
       return;
+=======
+  const handleLogin  = async () => {
+    try {
+      // Si ya hay sesión, decide la ruta por datos en BD
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.log('Error obteniendo sesión:', sessionError);
+      }
+
+      const user = sessionData?.session?.user;
+
+      if (!user) {
+        // Si no hay sesión, manda a registrarse o a un login completo con email/pass
+        router.push('/register');
+        return;
+      }
+
+      // Revisa si ya tiene alergias guardadas
+      const { data: existingAllergies, error: allergiesError } = await supabase
+        .from('allergies')
+        .select('id')
+        .eq('profile_id', user.id)
+        .limit(1);
+
+      if (!allergiesError && existingAllergies && existingAllergies.length > 0) {
+        router.push('/sos');
+      } else {
+        router.push('/completeProfile');
+      }
+    } catch (e) {
+      console.log('Fallo al decidir navegación post-login:', e);
+      router.push('/completeProfile');
+>>>>>>> bc8f473 (mmk)
     }
+  }
 
     setLoading(true);
     try {
