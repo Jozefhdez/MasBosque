@@ -1,6 +1,9 @@
 .env
 .vscode/
 
+# JetBrains IDEs
+.idea/
+*.iml
 
 # dependencies
 node_modules/
