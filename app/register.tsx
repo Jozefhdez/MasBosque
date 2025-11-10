@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { supabase } from './lib/supabaseClient';
+import styles from './Styles';
 
 export default function Register() {
   const router = useRouter();
@@ -18,20 +21,88 @@ export default function Register() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const handleBack = () => {
-      router.back();
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.replace('/sos');
+      }
     };
+    checkSession();
+  }, []);
 
-  const handleRegister = () => {
-    if (!acceptedTerms) {
-      alert('Debes aceptar los términos y condiciones');
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleRegister = async () => {
+    setError('');
+
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
+      setError('Por favor completa todos los campos.');
       return;
     }
-    console.log('Registro:', { firstName, lastName, email, password });
-    router.push('/completeProfile');
+
+    if (!acceptedTerms) {
+      setError('Debes aceptar los términos y condiciones.');
+      return;
+    }
+
+    try {
+      // If there's an active session (old user), sign out to avoid mixing sessions
+      const { data: s } = await supabase.auth.getSession();
+      if (s?.session) {
+        await supabase.auth.signOut();
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (data.user) {
+        // Crear fila en la tabla users con el mismo id que auth.users.id
+        const { error: insertError } = await supabase.from('users').insert([
+          {
+            id: data.user.id,
+            name: firstName,
+            last_name: lastName,
+            role: 'user',
+          },
+        ]);
+
+        if (insertError) {
+          setError('Error guardando datos adicionales: ' + insertError.message);
+          return;
+        }
+      }
+
+      Alert.alert('Cuenta creada', 'Revisa tu correo para confirmar tu cuenta.');
+      // Navigate based on session. Some projects auto-confirm and create a session, others require email confirmation
+      const { data: sessionData } = await supabase.auth.getSession();
+      // If there is a session but it's not the just-created user, sign out and send to login
+      if (sessionData?.session && data.user && sessionData.session.user.id !== data.user.id) {
+        await supabase.auth.signOut();
+      }
+      const { data: finalSession } = await supabase.auth.getSession();
+      if (finalSession?.session) {
+        router.replace('/completeProfile');
+      } else {
+        router.replace('/login');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError('Ocurrió un error inesperado.');
+    }
   };
 
   const handleLoginRedirect = () => {
@@ -48,16 +119,17 @@ export default function Register() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={styles.containerModify}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="dark-content" backgroundColor="#F5F5F0" />
       {/* Header con botón de retroceso */}
-        <View style={styles.headerLogo}>
-          <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.headerLogin}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
@@ -71,6 +143,7 @@ export default function Register() {
         </View>
 
         <View style={styles.form}>
+          {/* Campos de nombre y correo */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Nombre(s)</Text>
             <View style={styles.inputWrapper}>
@@ -83,10 +156,7 @@ export default function Register() {
                 autoCapitalize="words"
               />
               {firstName.length > 0 && (
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setFirstName('')}
-                >
+                <TouchableOpacity style={styles.iconButton} onPress={() => setFirstName('')}>
                   <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
               )}
@@ -105,10 +175,7 @@ export default function Register() {
                 autoCapitalize="words"
               />
               {lastName.length > 0 && (
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setLastName('')}
-                >
+                <TouchableOpacity style={styles.iconButton} onPress={() => setLastName('')}>
                   <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
               )}
@@ -129,10 +196,7 @@ export default function Register() {
                 autoComplete="email"
               />
               {email.length > 0 && (
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setEmail('')}
-                >
+                <TouchableOpacity style={styles.iconButton} onPress={() => setEmail('')}>
                   <Text style={styles.clearIcon}>✕</Text>
                 </TouchableOpacity>
               )}
@@ -152,14 +216,13 @@ export default function Register() {
                 autoCapitalize="none"
                 autoComplete="password"
               />
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={() => setShowPassword(!showPassword)}
-              >
+              <TouchableOpacity style={styles.iconButton} onPress={() => setShowPassword(!showPassword)}>
                 <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️'}</Text>
               </TouchableOpacity>
             </View>
           </View>
+
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <TouchableOpacity
             style={styles.termsContainer}
@@ -169,12 +232,11 @@ export default function Register() {
             <View style={styles.checkbox}>
               {acceptedTerms && <View style={styles.checkboxFilled} />}
             </View>
-            <Text style={styles.termsText}>
-              He leído y estoy de acuerdo con el{' '}
+            <Text style={styles.termsText}>He leído y estoy de acuerdo con el{' '}
               <Text style={styles.termsLink} onPress={handleTermsPress}>
                 Acuerdo de usuario
-              </Text>
-              {' '}y{' '}
+              </Text>{' '}
+              y{' '}
               <Text style={styles.termsLink} onPress={handlePrivacyPress}>
                 Política de privacidad
               </Text>
@@ -182,173 +244,17 @@ export default function Register() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-          <Text style={styles.registerButtonText}>Registrarse</Text>
+        <TouchableOpacity style={styles.loginButton} onPress={handleRegister}>
+          <Text style={styles.loginButtonText}>Registrarse</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Ya tienes cuenta? </Text>
           <TouchableOpacity onPress={handleLoginRedirect}>
-            <Text style={styles.loginText}>Iniciar sesión</Text>
+            <Text style={styles.createAccountText}>Iniciar sesión</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F0',
-  },
-    headerLogo: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      paddingHorizontal: '8%',
-      paddingTop: 60,
-      paddingBottom: 20,
-    },
-
-    backButton: {
-      width: 40,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-    },
-
-    backIcon: {
-      fontSize: 28,
-      color: '#000',
-    },
-
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  logoPlus: {
-    color: '#2D5016',
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  logoBosque: {
-    color: '#2D5016',
-    fontSize: 32,
-    fontWeight: '700',
-  },
-  logoManu: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#000',
-    marginTop: -8,
-  },
-  form: {
-    marginBottom: 24,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8E8E0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 52,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000',
-  },
-  iconButton: {
-    padding: 8,
-  },
-  clearIcon: {
-    fontSize: 18,
-    color: '#666',
-  },
-  eyeIcon: {
-    fontSize: 20,
-  },
-  termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#2D5016',
-    marginRight: 12,
-    marginTop: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxFilled: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#2D5016',
-  },
-  termsText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: '#2D5016',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  registerButton: {
-    backgroundColor: '#2D5016',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 8,
-  },
-  registerButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#2D5016',
-    fontWeight: '600',
-  },
-});
