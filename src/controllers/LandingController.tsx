@@ -6,12 +6,12 @@ export const LandingController = () => {
     const navigation = useNavigation<NavigationProp>();
 
     const handleGoSignIn = async () => {
-        logger.log('[Landing Controller] Go to sign in');
+        logger.log('[Landing Controller] Go to Sign In');
         navigation.navigate('SignIn');
     };
 
     const handleGoSignUp = async () => {
-        logger.log('[Landing Controller] Go to sign up');
+        logger.log('[Landing Controller] Go to Sign Up');
         navigation.navigate('SignUp');
     };
 

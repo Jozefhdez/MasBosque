@@ -2,6 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigation';
 
 export default function App() {
@@ -27,9 +28,9 @@ export default function App() {
   }
   
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <AppNavigator />
       <StatusBar />
-    </>
+    </GestureHandlerRootView>
   );
 }
