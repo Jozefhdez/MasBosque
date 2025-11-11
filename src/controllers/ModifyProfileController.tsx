@@ -1,23 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../models/RootParamsListModel';
 import { logger } from '../utils/logger';
 import { Alert } from 'react-native';
+import { useUser } from '../contexts/UserContext';
+import { UserAllergies } from '../models/userAllergiesModel';
 
 export const useModifyProfileController = () => {
     const navigation = useNavigation<NavigationProp>();
 
-    const [userName, setUserName] = useState('Juan Alfredo');
-    const [lastName, setLastName] = useState('Peréz Gonzalez');
-    const [email, setEmail] = useState('jualfred@gmail.com');
+    const { userProfile, userAllergies, loading } = useUser();
+
+    const [userName, setUserName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
     const [userPhoto, setUserPhoto] = useState('');
-    const [allergies, setAllergies] = useState(['Ibuprofeno', 'Abejas', 'Epinefrina']);
+    const [allergies, setAllergies] = useState<UserAllergies[]>([]);
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showOldPassword, setShowOldPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    useEffect(() => {
+        if (userProfile?.name) {
+            setUserName(userProfile.name);
+        }
+
+        if (userProfile?.last_name) {
+            setLastName(userProfile.last_name)
+        }
+
+        if (userProfile?.mail) {
+            setEmail(userProfile.mail)
+        }
+
+        if (userAllergies && userAllergies.length > 0) {
+            setAllergies(userAllergies);
+        }
+    }, [userProfile, userAllergies]);
 
     const handleGoBack = async () => {
         logger.log('[ModifyProfile Controller] Go back to previous screen');
@@ -26,7 +48,10 @@ export const useModifyProfileController = () => {
 
     const handleAllergyChange = (index: number, text: string) => {
         const newAllergies = [...allergies];
-        newAllergies[index] = text;
+        newAllergies[index] = {
+            ...newAllergies[index],
+            description: text
+        };
         setAllergies(newAllergies);
     };
 
@@ -37,12 +62,20 @@ export const useModifyProfileController = () => {
 
     const handleClearAllergy = (index: number) => {
         const newAllergies = [...allergies];
-        newAllergies[index] = '';
+        newAllergies[index] = {
+            ...newAllergies[index],
+            description: ''
+        };
         setAllergies(newAllergies);
     };
 
     const handleAddAllergy = () => {
-        setAllergies([...allergies, '']);
+        const newAllergy: UserAllergies = {
+            id: `temp-${Date.now()}`, // Temporary ID for new allergies
+            profile_id: userProfile?.id || '',
+            description: ''
+        };
+        setAllergies([...allergies, newAllergy]);
     };
 
     const handleSave = async () => {

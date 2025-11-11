@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigation';
+import { AuthProvider } from './src/contexts/AuthContext';
+import { UserProvider } from './src/contexts/UserContext';
 
 export default function App() {
 
@@ -28,9 +30,13 @@ export default function App() {
   }
   
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppNavigator />
-      <StatusBar />
-    </GestureHandlerRootView>
+    <AuthProvider>
+      <UserProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <AppNavigator />
+          <StatusBar />
+        </GestureHandlerRootView>
+      </UserProvider>
+    </AuthProvider>
   );
 }

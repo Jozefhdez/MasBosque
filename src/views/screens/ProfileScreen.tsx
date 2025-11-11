@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
-import { ProfileController } from '../../controllers/ProfileController';
+import { useProfileController } from '../../controllers/ProfileController';
 import { BackChevronIcon } from '../components/Icon';
 
 export default function ProfileScreen() {
@@ -12,7 +12,7 @@ export default function ProfileScreen() {
     handleGoModifyProfile,
     handleSignOut,
     handleDeleteAccount
-  } = ProfileController();
+  } = useProfileController();
 
   return (
     <View style={styles.container}>
@@ -59,9 +59,9 @@ export default function ProfileScreen() {
             Alergias o contraindicaciones:
           </Text>
           {allergies && allergies.length > 0 ? (
-            allergies.map((allergy: string, index: number) => (
-              <Text key={index} style={styles.allergyItem}>
-                • {allergy}
+            allergies.map((allergy) => (
+              <Text key={allergy.id} style={styles.allergyItem}>
+                • {allergy.description}
               </Text>
             ))
           ) : (

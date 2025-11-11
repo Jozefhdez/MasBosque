@@ -12,7 +12,7 @@ export default function SignInScreen() {
     showPassword,
     setShowPassword,
     handleGoSignUp,
-    handleGoSOS,
+    handleSignIn,
     handleForgotPassword
   } = useSignInController();
 
@@ -96,7 +96,7 @@ export default function SignInScreen() {
 
         <TouchableOpacity 
           style={styles.signInButton}
-          onPress={handleGoSOS}
+          onPress={handleSignIn}
         >
           <Text style={styles.signInText}>Iniciar Sesión</Text>
         </TouchableOpacity>

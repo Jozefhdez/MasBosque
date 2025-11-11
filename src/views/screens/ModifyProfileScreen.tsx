@@ -145,8 +145,8 @@ export default function ModifyProfileScreen() {
           <Text style={styles.label}>Alergias o medicamento contraindicados</Text>
           {allergies.map((allergy, index) => (
             <AllergyItem
-              key={index}
-              allergy={allergy}
+              key={allergy.id}
+              allergy={allergy.description}
               onRemove={() => handleRemoveAllergy(index)}
               onChangeText={(text) => handleAllergyChange(index, text)}
               onClear={() => handleClearAllergy(index)}

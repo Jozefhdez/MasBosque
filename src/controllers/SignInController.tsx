@@ -2,8 +2,11 @@ import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../models/RootParamsListModel';
 import { useState } from 'react';
 import { logger } from '../utils/logger';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useSignInController = () => {
+    
+    const { signIn } = useAuth()
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -16,9 +19,22 @@ export const useSignInController = () => {
         navigation.navigate('SignUp');
     };
 
-    const handleGoSOS = async () => {
-        logger.log('[SignIn Controller] Go to SOS');
-        navigation.navigate('SOS');
+    const handleSignIn = async () => {
+        try {
+            logger.log('[SignIn Controller] Attempting sign in');
+            
+            if (!email || !password) {
+                logger.log('[SignIn Controller] Email or password is empty');
+                return;
+            }
+
+            await signIn(email, password);
+            
+            logger.log('[SignIn Controller] Sign in successful');
+            // navigation.navigate('SOS');
+        } catch (error) {
+            logger.log('[SignIn Controller] Sign in failed:', error);
+        }
     };
 
     const handleForgotPassword = async () => {
@@ -33,7 +49,7 @@ export const useSignInController = () => {
         showPassword,
         setShowPassword,
         handleGoSignUp,
-        handleGoSOS,
+        handleSignIn,
         handleForgotPassword
     };
 }
