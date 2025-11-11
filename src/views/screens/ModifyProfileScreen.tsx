@@ -1,6 +1,6 @@
 import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image, ScrollView } from 'react-native';
 import { useModifyProfileController } from '../../controllers/ModifyProfileController';
-import { BackChevronIcon, Pencil, XIcon, PlusCircle, OpenEyeIcon, CloseEyeIcon } from '../components/Icon';
+import { BackChevronIcon, Pencil, XIcon, PlusCircle, OpenEyeIcon, CloseEyeIcon, UserIcon } from '../components/Icon';
 import AllergyItem from '../components/AllergyItem';
 
 export default function ModifyProfileScreen() {
@@ -32,6 +32,7 @@ export default function ModifyProfileScreen() {
     handleAddAllergy,
     handleSave,
     handleChangePhoto,
+    handleChangeEmail,
     handleChangePassword
   } = useModifyProfileController();
 
@@ -59,9 +60,10 @@ export default function ModifyProfileScreen() {
             />
           ) : (
             <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarPlaceholderText}>
-                {userName ? userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : '??'}
-              </Text>
+              <UserIcon 
+                size={60} 
+                color="#FFFAFA" 
+              />
             </View>
           )}
           <TouchableOpacity
@@ -122,25 +124,6 @@ export default function ModifyProfileScreen() {
             </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Correo</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder=". . ."
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor="#999"
-              />
-              {email.length > 0 && (
-                <TouchableOpacity onPress={() => setEmail('')}>
-                  <XIcon size={20} color="#000" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
 
           <Text style={styles.label}>Alergias o medicamento contraindicados</Text>
           {allergies.map((allergy, index) => (
@@ -174,7 +157,37 @@ export default function ModifyProfileScreen() {
 
         <View style={styles.divider} />
 
-        {/* Password Section */}
+        <View style={styles.emailSection}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Correo</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder=". . ."
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#999"
+              />
+              {email.length > 0 && (
+                <TouchableOpacity onPress={() => setEmail('')}>
+                  <XIcon size={20} color="#000" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.saveButton}
+            onPress={handleChangeEmail}
+          >
+            <Text style={styles.saveButtonText}>Cambiar Correo</Text>
+          </TouchableOpacity>
+
+        </View>
+        
+        <View style={styles.divider} />
         
         <View style={styles.passwordSection}>
           <View style={styles.inputContainer}>
@@ -266,7 +279,7 @@ export default function ModifyProfileScreen() {
             style={styles.changePasswordButton}
             onPress={handleChangePassword}
           >
-            <Text style={styles.changePasswordButtonText}>Cambiar contraseña</Text>
+            <Text style={styles.changePasswordButtonText}>Cambiar Contraseña</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -306,11 +319,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#003706',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  avatarPlaceholderText: {
-    fontSize: 48,
-    fontFamily: 'IBMPlexSansDevanagari-Bold',
-    color: '#FFFAFA',
   },
   pencilIcon: {
     position: 'absolute',
@@ -384,6 +392,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e0e0',
     marginHorizontal: 20,
     marginVertical: 24,
+  },
+  emailSection: {
+    paddingHorizontal: 20,
   },
   passwordSection: {
     paddingHorizontal: 20,
