@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { User } from '@supabase/supabase-js';
+import { logger } from '../utils/logger';
 
 type AuthContextType = {
   user: User | null;
@@ -38,18 +39,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        data: {
+          firstName: firstName,
+          lastName: lastName,
+        }
+      }
+    });
     if (error) throw error;
     
-    if (data.user) {
-      await supabase.from('users').insert([{
-        id: data.user.id,
-        name: firstName,
-        last_name: lastName,
-        role: 'user',
-      }]);
-    }
-    setUser(data.user);
+    logger.log('[Auth Context] User signed up successfully. Profile will be created via database trigger.');
   };
 
   const signOut = async () => {

@@ -18,7 +18,7 @@ export default function SignUpScreen() {
     readTOS,
     setReadTOS,
     handleGoSignIn,
-    handleGoCompleteProfile,
+    handleSignUp,
     handleTOS,
     handlePA
   } = useSignUpController();
@@ -173,7 +173,7 @@ export default function SignUpScreen() {
 
         <TouchableOpacity 
           style={styles.signUpButton}
-          onPress={handleGoCompleteProfile}
+          onPress={handleSignUp}
         >
           <Text style={styles.signUpText}>Registrarse</Text>
         </TouchableOpacity>

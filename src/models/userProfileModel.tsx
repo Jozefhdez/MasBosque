@@ -3,4 +3,5 @@ export type UserProfile = {
   name: string;
   last_name: string;
   role: string;
+  is_completed: boolean;
 };

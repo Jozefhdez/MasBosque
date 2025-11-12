@@ -238,8 +238,9 @@ export const useModifyProfileController = () => {
                 [
                     {
                         text: 'OK',
-                        onPress: () => {
-                            signOut()
+                        onPress: async () => {
+                            await signOut()
+                            logger.log('[ModifyProfile Controller] User signed out');
                         }
                     }
                 ]
@@ -315,11 +316,12 @@ export const useModifyProfileController = () => {
                 [
                     {
                         text: 'OK',
-                        onPress: () => {
+                        onPress: async () => {
                             setOldPassword('');
                             setNewPassword('');
                             setConfirmPassword('');
-                            signOut()
+                            await signOut()
+                            logger.log('[ModifyProfile Controller] User signed out');
                         }
                     }
                 ]

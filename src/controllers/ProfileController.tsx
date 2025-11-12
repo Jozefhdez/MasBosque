@@ -77,7 +77,9 @@ export const useProfileController = () => {
                             'Cuenta eliminada',
                             'Tu cuenta ha sido eliminada exitosamente.'
                         );
-                        navigation.navigate('Landing');
+                        // TODO: delete account logic
+                        await signOut()
+                        logger.log('[Profile Controller] User signed out');
                     },
                 },
             ]

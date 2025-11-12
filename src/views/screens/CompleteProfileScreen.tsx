@@ -1,20 +1,22 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useCompleteProfileController } from '../../controllers/CompleteProfileController';
 import { Ionicons } from '@expo/vector-icons';
-import { Pencil, PlusCircle } from '../components/Icon';
+import { Pencil, PlusCircle, UserIcon } from '../components/Icon';
 import AllergyItem from '../components/AllergyItem';
 
 export default function CompleteProfileScreen() {
 
   const {
     userName,
+    lastName,
     allergies,
-    handleAddAllergy,
+    userPhoto,
+    handleAllergyChange,
     handleRemoveAllergy,
-    handleUpdateAllergy,
     handleClearAllergy,
-    handleSelectImage,
-    handleGoSOS
+    handleAddAllergy,
+    handleChangePhoto,
+    handleCompleteProfile
   } = useCompleteProfileController();
 
   return (
@@ -24,32 +26,45 @@ export default function CompleteProfileScreen() {
     >
       
       <Text style={styles.title}>
-        {userName}
+        {userName} {lastName}
       </Text>
 
       <Text style={styles.sectionTitle}>Agregar foto de perfil</Text>
       
-      <TouchableOpacity 
-        style={styles.photoButton}
-        onPress={handleSelectImage}
-      >
-        <View style={styles.photoPlaceholder}>
-          <Pencil
-            size={48}
-            color='#003706'
+      <View style={styles.avatarContainer}>
+        {userPhoto ? (
+          <Image 
+            source={{ uri: userPhoto }} 
+            style={styles.avatar}
           />
-        </View>
-      </TouchableOpacity>
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <UserIcon 
+              size={60} 
+              color="#FFFAFA" 
+            />
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.pencilIcon}
+          onPress={handleChangePhoto}
+        >
+          <Pencil 
+            size={28} 
+            color="#003706" 
+          />
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.sectionTitle}>Alergias o medicamento contraindicados</Text>
 
       <View style={styles.allergiesList}>
         {allergies.map((allergy, index) => (
           <AllergyItem
-            key={index}
-            allergy={allergy}
+            key={allergy.id}
+            allergy={allergy.description}
             onRemove={() => handleRemoveAllergy(index)}
-            onChangeText={(text) => handleUpdateAllergy(index, text)}
+            onChangeText={(text) => handleAllergyChange(index, text)}
             onClear={() => handleClearAllergy(index)}
           />
         ))}
@@ -68,7 +83,7 @@ export default function CompleteProfileScreen() {
 
       <TouchableOpacity
         style={styles.completeProfileButton}
-        onPress={handleGoSOS}
+        onPress={handleCompleteProfile}
         >
         <Text style={styles.completeProfileText}>
           Continuar
@@ -102,22 +117,31 @@ const styles = StyleSheet.create({
     color: '#003706',
     marginBottom: 25,
   },
-  photoButton: {
+  avatarContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
   },
-  photoPlaceholder: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: '#E8E8E8',
+  avatar: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+  },
+  avatarPlaceholder: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: '#003706',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  },
+  pencilIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: '50%',
+    marginRight: -90,
+    backgroundColor: '#F2F0EF',
+    borderRadius: 20,
+    padding: 8,
   },
   allergiesList: {
     marginBottom: 40,

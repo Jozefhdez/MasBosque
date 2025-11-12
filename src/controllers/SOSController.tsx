@@ -30,13 +30,13 @@ export const useSOSController = () => {
     const handleSOSPress = () => {
         setIsSOSActive(true);
         logger.log('[SOS Controller] SOS Activated');
-        // Add your SOS activation logic here
+        // TODO: SOS activation logic
     };
 
     const handleSOSCancel = () => {
         setIsSOSActive(false);
         logger.log('[SOS Controller] SOS Cancelled');
-        // Add your SOS cancellation logic here
+        // TODO: SOS cancellation logic
     };
 
     return {

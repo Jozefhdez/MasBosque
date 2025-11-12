@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 import { RootStackParamList } from '../models/RootParamsListModel';
 import { useAuth } from '../contexts/AuthContext';
+import { useUser } from '../contexts/UserContext';
 import LandingScreen from '../views/screens/LandingScreen';
 import SignInScreen from '../views/screens/SignInScreen';
 import SignUpScreen from '../views/screens/SignUpScreen';
@@ -15,9 +16,10 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
 
-    const { user, loading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
+    const { userProfile, loading: userLoading } = useUser();
 
-    if (loading) {
+    if (authLoading || userLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#003706" />
@@ -25,12 +27,17 @@ export default function AppNavigator() {
         );
     }
 
+    // Determine initial route based on user authentication and profile completion
+    const getInitialRoute = () => {
+        if (!user) return "Landing";
+        if (userProfile && !userProfile.is_completed) return "CompleteProfile";
+        return "SOS";
+    };
+
     return (
         <NavigationContainer>
             <Stack.Navigator 
-                initialRouteName={
-                    user ? "SOS" : "Landing"
-                }
+                initialRouteName={getInitialRoute()}
                 screenOptions={{
                     headerShown: false,
                 }}
