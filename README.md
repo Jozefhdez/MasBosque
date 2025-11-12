@@ -91,25 +91,25 @@ Volunteer rescue teams access a dedicated web interface featuring:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      MOBILE APPLICATION LAYER                    │
+│                      MOBILE APPLICATION LAYER                   │
 │  React Native + TypeScript • GPS • Bluetooth • Offline Storage  │
 └────────────────────────────┬────────────────────────────────────┘
                              │ Bluetooth LE
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    IoT MESH NETWORK LAYER                        │
-│     LoRa Nodes (ESP32) • 15km Range • Self-Healing Mesh        │
+│                    IoT MESH NETWORK LAYER                       │
+│     LoRa Nodes (ESP32) • 15km Range • Self-Healing Mesh         │
 └────────────────────────────┬────────────────────────────────────┘
                              │ HTTPS/REST API
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     CLOUD PROCESSING LAYER                       │
-│   Supabase REST API → Edge Functions → PostgreSQL → Realtime   │
+│                     CLOUD PROCESSING LAYER                      │
+│   Supabase REST API → Edge Functions → PostgreSQL → Realtime    │
 └────────────────────────────┬────────────────────────────────────┘
                              │ WebSocket/REST
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    RESPONSE COORDINATION LAYER                   │
+│                    RESPONSE COORDINATION LAYER                  │
 │        Web Dashboard • SMS Alerts • Push Notifications          │
 └─────────────────────────────────────────────────────────────────┘
 ```
