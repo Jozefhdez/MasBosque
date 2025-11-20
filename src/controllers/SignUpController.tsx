@@ -33,6 +33,19 @@ export const useSignUpController = () => {
                 return;
             }
 
+            // Validation: Check name
+            const alphaRegex = /^[\p{L}\s]+$/u;
+
+            if (!alphaRegex.test(name)) {
+                Alert.alert('Error', 'El nombre solo puede contener letras.');
+                return;
+            }
+
+            if (!alphaRegex.test(lastName)) {
+                Alert.alert('Error', 'El apellido solo puede contener letras.');
+                return;
+            }
+
             // Validation: Check email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {

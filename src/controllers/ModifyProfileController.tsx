@@ -100,7 +100,7 @@ export const useModifyProfileController = () => {
         }
 
         // Validation: Check regex for name and lastName (allowing spaces)
-        const alphaRegex = /^[a-zA-Z\s]+$/;
+        const alphaRegex = /^[\p{L}\s]+$/u;
 
         if (!alphaRegex.test(userName)) {
             Alert.alert('Error', 'El nombre solo puede contener letras.');
