@@ -73,7 +73,7 @@ export const useCompleteProfileController = () => {
 
         
         // Validation: Check that there are no empty allergies
-        const alphaRegex = /^[a-zA-Z\s]+$/;
+        const alphaRegex = /^[\p{L}\s]+$/u;
 
         const hasEmptyAllergies = allergies.some(a => a.description.trim() === '');
         
