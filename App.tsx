@@ -6,8 +6,20 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { UserProvider } from './src/contexts/UserContext';
+import * as Sentry from '@sentry/react-native';
 
-export default function App() {
+// Initialize Sentry for error tracking
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  debug: false,
+  tracesSampleRate: 1.0,
+  environment: __DEV__ ? 'development' : 'production',
+  enableAutoSessionTracking: true,
+  sessionTrackingIntervalMillis: 30000,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+});
+
+function App() {
 
   const [loaded, error] = useFonts({
     'IBMPlexSansDevanagari-Thin': require('./assets/fonts/IBMPlexSansDevanagari-Thin.ttf'),
@@ -40,3 +52,6 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+// Wrap App with Sentry
+export default Sentry.wrap(App);
