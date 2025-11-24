@@ -97,11 +97,13 @@ export const useModifyProfileController = () => {
 
     const deleteOldImage = async (imageUrl: string, maxRetries: number = 3): Promise<boolean> => {
         const parts = imageUrl.split('/avatars/');
-        if (parts.length < 2) return true; // No valid path to delete
+        if (parts.length < 2) return true; // No valid path to delete, nothing to clean up
         
         const pathWithParams = parts[1];
         const path = pathWithParams.split('?')[0];
         const decodedPath = decodeURIComponent(path);
+
+        const getBackoffDelay = (attempt: number) => Math.pow(2, attempt) * 100;
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -119,14 +121,13 @@ export const useModifyProfileController = () => {
                 logger.error(`[ModifyProfile Controller] Error deleting old image (attempt ${attempt}/${maxRetries}):`, error);
                 
                 if (attempt < maxRetries) {
-                    // Wait before retrying (exponential backoff)
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+                    await new Promise(resolve => setTimeout(resolve, getBackoffDelay(attempt)));
                 }
             } catch (error) {
                 logger.error(`[ModifyProfile Controller] Exception deleting old image (attempt ${attempt}/${maxRetries}):`, error);
                 
                 if (attempt < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+                    await new Promise(resolve => setTimeout(resolve, getBackoffDelay(attempt)));
                 }
             }
         }
