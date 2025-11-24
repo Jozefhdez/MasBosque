@@ -266,7 +266,8 @@ export const useModifyProfileController = () => {
             );
         } catch (error) {
             logger.error('[ModifyProfile Controller] Error saving:', error);
-            Alert.alert('Error', 'No se pudieron guardar los cambios. Intenta de nuevo.');
+            const errorMessage = (error as any)?.message || 'No se pudieron guardar los cambios.';
+            Alert.alert('Error', `${errorMessage}\n\nPor favor verifica tu conexión a internet e inténtalo de nuevo.`);
         }
     };
 
