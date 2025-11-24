@@ -14,11 +14,15 @@ export const useSOSController = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [isSOSActive, setIsSOSActive] = useState(false);
     const [userName, setUserName] = useState('');
-    const [userPhoto, setUserPhoto] = useState(null);
+    const [userPhoto, setUserPhoto] = useState<string | null>(null);
 
     useEffect(() => {
         if (userProfile?.name || userProfile?.last_name) {
             setUserName(`${userProfile.name} ${userProfile.last_name}`);
+        }
+
+        if (userProfile?.photo_url) {
+            setUserPhoto(userProfile.photo_url);
         }
     }, [userProfile]);
 

@@ -1,9 +1,13 @@
-import { StyleSheet, View, Text, TouchableOpacity, TextInput, Image, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { Image } from 'expo-image';
 import { useModifyProfileController } from '../../controllers/ModifyProfileController';
 import { BackChevronIcon, Pencil, XIcon, PlusCircle, OpenEyeIcon, CloseEyeIcon, UserIcon } from '../components/Icon';
 import AllergyItem from '../components/AllergyItem';
 
 export default function ModifyProfileScreen() {
+  const [imageError, setImageError] = useState(false);
+
   const {
     userName,
     lastName,
@@ -53,10 +57,13 @@ export default function ModifyProfileScreen() {
         </View>
 
         <View style={styles.avatarContainer}>
-          {userPhoto ? (
+          {userPhoto && !imageError ? (
             <Image 
               source={{ uri: userPhoto }} 
               style={styles.avatar}
+              contentFit="cover"
+              transition={1000}
+              onError={() => setImageError(true)}
             />
           ) : (
             <View style={styles.avatarPlaceholder}>

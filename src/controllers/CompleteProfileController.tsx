@@ -6,6 +6,7 @@ import { Alert } from 'react-native';
 import { useUser } from '../contexts/UserContext';
 import { UserAllergies } from '../models/userAllergiesModel';
 import { supabase } from '../services/supabaseClient';
+import * as ImagePicker from 'expo-image-picker';
 
 export const useCompleteProfileController = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -26,11 +27,15 @@ export const useCompleteProfileController = () => {
             setLastName(userProfile.last_name)
         }
 
+        if (userProfile?.photo_url) {
+            setUserPhoto(userProfile.photo_url);
+        }
+
         if (userAllergies && userAllergies.length > 0) {
             setAllergies(userAllergies);
         }
 
-    }, []);
+    }, [userProfile, userAllergies]);
 
     const handleAllergyChange = (index: number, text: string) => {
         const newAllergies = [...allergies];
@@ -64,8 +69,77 @@ export const useCompleteProfileController = () => {
         setAllergies([...allergies, newAllergy]);
     };
 
+    const uploadImage = async (uri: string) => {
+        try {
+            if (!userProfile?.id) return;
+
+            const response = await fetch(uri);
+            const arrayBuffer = await response.arrayBuffer();
+
+            const fileExt = uri.split('.').pop();
+            const fileName = `${userProfile.id}/${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, arrayBuffer, {
+                    contentType: `image/${fileExt}`,
+                    upsert: true,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            
+            if (data) {
+                const publicUrl = data.publicUrl;
+                
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ photo_url: publicUrl })
+                    .eq('id', userProfile.id);
+
+                if (updateError) throw updateError;
+                
+                setUserPhoto(publicUrl);
+            }
+
+        } catch (error) {
+            logger.error('[CompleteProfile Controller] Error uploading image:', error);
+            Alert.alert('Error', 'No se pudo subir la imagen.');
+        }
+    };
+
     const handleChangePhoto = async () => {
-        logger.log('[CompleteProfile Controller] Upload Image');
+        logger.log('[CompleteProfile Controller] Change profile photo');
+        
+        try {
+            // Request permission
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para cambiar la foto.');
+                return;
+            }
+
+            // Pick image
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled) {
+                const photo = result.assets[0];
+                setUserPhoto(photo.uri); // Optimistic update
+
+                // Upload to Supabase
+                await uploadImage(photo.uri);
+            }
+        } catch (error) {
+            logger.error('[CompleteProfile Controller] Error picking image:', error);
+            Alert.alert('Error', 'Hubo un problema al seleccionar la imagen.');
+        }
     };
 
     const handleCompleteProfile = async () => {

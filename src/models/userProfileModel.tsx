@@ -4,4 +4,5 @@ export type UserProfile = {
   last_name: string;
   role: string;
   is_completed: boolean;
+  photo_url?: string;
 };

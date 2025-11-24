@@ -1,4 +1,6 @@
-import { StyleSheet, View, Text, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { Image } from 'expo-image';
 import { SOSButton, SOSButtonDesign } from './Icon';
 import { SOSInactiveViewProps } from '../../models/SOSInactiveViewProps';
 
@@ -10,6 +12,8 @@ export default function SOSInactiveView({
   onSOSPress 
 }: SOSInactiveViewProps) {
     
+  const [imageError, setImageError] = useState(false);
+
   return (
     <View style={styles.container}>
       <Text style={styles.sosTitle}>SOS</Text>
@@ -38,12 +42,19 @@ export default function SOSInactiveView({
         activeOpacity={0.7}
       >
         <View style={styles.userPhotoContainer}>
-          {userPhoto ? (
-            <Image source={{ uri: userPhoto }} style={styles.userPhoto} />
+          {userPhoto && !imageError ? (
+            <Image 
+              source={{ uri: userPhoto }} 
+              style={styles.userPhoto}
+              contentFit="cover"
+              transition={1000}
+              cachePolicy="memory-disk"
+              onError={() => setImageError(true)}
+            />
           ) : (
             <View style={styles.userPhotoPlaceholder}>
               <Text style={styles.userPhotoPlaceholderText}>
-                {userName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                {userName ? userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??'}
               </Text>
             </View>
           )}
