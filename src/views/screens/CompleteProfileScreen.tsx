@@ -1,10 +1,13 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { Image } from 'expo-image';
 import { useCompleteProfileController } from '../../controllers/CompleteProfileController';
 import { Ionicons } from '@expo/vector-icons';
 import { Pencil, PlusCircle, UserIcon } from '../components/Icon';
 import AllergyItem from '../components/AllergyItem';
 
 export default function CompleteProfileScreen() {
+  const [imageError, setImageError] = useState(false);
 
   const {
     userName,
@@ -32,10 +35,13 @@ export default function CompleteProfileScreen() {
       <Text style={styles.sectionTitle}>Agregar foto de perfil</Text>
       
       <View style={styles.avatarContainer}>
-        {userPhoto ? (
+        {userPhoto && !imageError ? (
           <Image 
             source={{ uri: userPhoto }} 
             style={styles.avatar}
+            contentFit="cover"
+            transition={1000}
+            onError={() => setImageError(true)}
           />
         ) : (
           <View style={styles.avatarPlaceholder}>

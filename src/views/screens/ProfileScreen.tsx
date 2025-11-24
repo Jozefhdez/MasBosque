@@ -1,8 +1,12 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image, StatusBar } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, StatusBar } from 'react-native';
+import { useState } from 'react';
+import { Image } from 'expo-image';
 import { useProfileController } from '../../controllers/ProfileController';
 import { BackChevronIcon } from '../components/Icon';
 
 export default function ProfileScreen() {
+
+  const [imageError, setImageError] = useState(false);
 
   const {
     userName,
@@ -36,10 +40,13 @@ export default function ProfileScreen() {
       >
 
         <View style={styles.avatarContainer}>
-          {userPhoto ? (
+          {userPhoto && !imageError ? (
             <Image 
               source={{ uri: userPhoto }} 
               style={styles.avatar}
+              contentFit="cover"
+              transition={1000}
+              onError={() => setImageError(true)}
             />
           ) : (
             <View style={styles.avatarPlaceholder}>

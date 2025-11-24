@@ -15,12 +15,16 @@ export const useProfileController = () => {
     const { signOut } = useAuth()
 
     const [userName, setUserName] = useState('');
-    const [userPhoto, setUserPhoto] = useState(null);
+    const [userPhoto, setUserPhoto] = useState<string | null>(null);
     const [allergies, setAllergies] = useState<UserAllergies[]>([]);
 
     useEffect(() => {
         if (userProfile?.name || userProfile?.last_name) {
             setUserName(`${userProfile.name} ${userProfile.last_name}`);
+        }
+
+        if (userProfile?.photo_url) {
+            setUserPhoto(userProfile.photo_url);
         }
 
         if (userAllergies && userAllergies.length > 0) {

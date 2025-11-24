@@ -7,6 +7,7 @@ import { useUser } from '../contexts/UserContext';
 import { useAuth } from '../contexts/AuthContext';
 import { UserAllergies } from '../models/userAllergiesModel';
 import { supabase } from '../services/supabaseClient';
+import * as ImagePicker from 'expo-image-picker';
 
 export const useModifyProfileController = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -35,6 +36,10 @@ export const useModifyProfileController = () => {
 
         if (userProfile?.last_name) {
             setLastName(userProfile.last_name)
+        }
+
+        if (userProfile?.photo_url) {
+            setUserPhoto(userProfile.photo_url);
         }
 
         if (userAllergies && userAllergies.length > 0) {
@@ -201,9 +206,76 @@ export const useModifyProfileController = () => {
         }
     };
 
+    const uploadImage = async (uri: string) => {
+        try {
+            if (!userProfile?.id) return;
+
+            const response = await fetch(uri);
+            const arrayBuffer = await response.arrayBuffer();
+
+            const fileExt = uri.split('.').pop();
+            const fileName = `${userProfile.id}/${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, arrayBuffer, {
+                    contentType: `image/${fileExt}`,
+                    upsert: true,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+            
+            if (data) {
+                const publicUrl = data.publicUrl;
+                
+                // Update user profile in DB
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ photo_url: publicUrl })
+                    .eq('id', userProfile.id);
+
+                if (updateError) throw updateError;
+                
+                setUserPhoto(publicUrl);
+                refreshUser(); // Refresh context
+            }
+
+        } catch (error) {
+            logger.error('[ModifyProfile Controller] Error uploading image:', error);
+            Alert.alert('Error', 'No se pudo subir la imagen.');
+        }
+    };
+
     const handleChangePhoto = async () => {
         logger.log('[ModifyProfile Controller] Change profile photo');
-        // TODO: Implement photo selection logic
+        
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para cambiar la foto.');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.5,
+            });
+
+            if (!result.canceled) {
+                const photo = result.assets[0];
+                setUserPhoto(photo.uri);
+
+                await uploadImage(photo.uri);
+            }
+        } catch (error) {
+            logger.error('[ModifyProfile Controller] Error picking image:', error);
+            Alert.alert('Error', 'Hubo un problema al seleccionar la imagen.');
+        }
     };
 
     const handleChangeEmail = async () => {
