@@ -95,6 +95,31 @@ export const useModifyProfileController = () => {
         setAllergies([...allergies, newAllergy]);
     };
 
+    const deleteOldImage = async (imageUrl: string) => {
+        try {
+            const parts = imageUrl.split('/avatars/');
+            if (parts.length < 2) return;
+            
+            const pathWithParams = parts[1];
+            const path = pathWithParams.split('?')[0];
+            const decodedPath = decodeURIComponent(path);
+
+            logger.log('[ModifyProfile Controller] Attempting to delete:', decodedPath);
+
+            const { error } = await supabase.storage
+                .from('avatars')
+                .remove([decodedPath]);
+
+            if (error) {
+                logger.error('[ModifyProfile Controller] Error deleting old image:', error);
+            } else {
+                logger.log('[ModifyProfile Controller] Old image deleted successfully');
+            }
+        } catch (error) {
+            logger.error('[ModifyProfile Controller] Exception deleting old image:', error);
+        }
+    };
+
     const handleSave = async () => {
         logger.log('[ModifyProfile Controller] Saving profile changes...');
 
@@ -135,12 +160,26 @@ export const useModifyProfileController = () => {
 
         try {
 
+            let photoUrl = userProfile?.photo_url;
+
+            // Check if photo has changed (is a local file URI)
+            if (userPhoto && !userPhoto.startsWith('http')) {
+                const uploadedUrl = await uploadImage(userPhoto);
+                if (uploadedUrl) {
+                    if (photoUrl && photoUrl.includes('avatars')) {
+                        await deleteOldImage(photoUrl);
+                    }
+                    photoUrl = uploadedUrl;
+                }
+            }
+
             // Update user profile
             const { error: profileError } = await supabase
                 .from('users')
                 .update({
                     name: userName,
                     last_name: lastName,
+                    photo_url: photoUrl
                 })
                 .eq('id', userProfile?.id);
             
@@ -206,9 +245,9 @@ export const useModifyProfileController = () => {
         }
     };
 
-    const uploadImage = async (uri: string) => {
+    const uploadImage = async (uri: string): Promise<string | null> => {
         try {
-            if (!userProfile?.id) return;
+            if (!userProfile?.id) return null;
 
             const response = await fetch(uri);
             const arrayBuffer = await response.arrayBuffer();
@@ -219,7 +258,7 @@ export const useModifyProfileController = () => {
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, arrayBuffer, {
+                .upload(filePath, arrayBuffer as any, {
                     contentType: `image/${fileExt}`,
                     upsert: true,
                 });
@@ -229,23 +268,14 @@ export const useModifyProfileController = () => {
             const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
             
             if (data) {
-                const publicUrl = data.publicUrl;
-                
-                // Update user profile in DB
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ photo_url: publicUrl })
-                    .eq('id', userProfile.id);
-
-                if (updateError) throw updateError;
-                
-                setUserPhoto(publicUrl);
-                refreshUser(); // Refresh context
+                return data.publicUrl;
             }
+            return null;
 
         } catch (error) {
             logger.error('[ModifyProfile Controller] Error uploading image:', error);
             Alert.alert('Error', 'No se pudo subir la imagen.');
+            return null;
         }
     };
 
@@ -269,8 +299,6 @@ export const useModifyProfileController = () => {
             if (!result.canceled) {
                 const photo = result.assets[0];
                 setUserPhoto(photo.uri);
-
-                await uploadImage(photo.uri);
             }
         } catch (error) {
             logger.error('[ModifyProfile Controller] Error picking image:', error);

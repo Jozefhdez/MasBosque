@@ -69,9 +69,34 @@ export const useCompleteProfileController = () => {
         setAllergies([...allergies, newAllergy]);
     };
 
-    const uploadImage = async (uri: string) => {
+    const deleteOldImage = async (imageUrl: string) => {
         try {
-            if (!userProfile?.id) return;
+            const parts = imageUrl.split('/avatars/');
+            if (parts.length < 2) return;
+            
+            const pathWithParams = parts[1];
+            const path = pathWithParams.split('?')[0]; // Remove query params if any
+            const decodedPath = decodeURIComponent(path);
+
+            logger.log('[CompleteProfile Controller] Attempting to delete:', decodedPath);
+
+            const { error } = await supabase.storage
+                .from('avatars')
+                .remove([decodedPath]);
+
+            if (error) {
+                logger.error('[CompleteProfile Controller] Error deleting old image:', error);
+            } else {
+                logger.log('[CompleteProfile Controller] Old image deleted successfully');
+            }
+        } catch (error) {
+            logger.error('[CompleteProfile Controller] Exception deleting old image:', error);
+        }
+    };
+
+    const uploadImage = async (uri: string): Promise<string | null> => {
+        try {
+            if (!userProfile?.id) return null;
 
             const response = await fetch(uri);
             const arrayBuffer = await response.arrayBuffer();
@@ -82,7 +107,7 @@ export const useCompleteProfileController = () => {
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, arrayBuffer, {
+                .upload(filePath, arrayBuffer as any, {
                     contentType: `image/${fileExt}`,
                     upsert: true,
                 });
@@ -92,21 +117,14 @@ export const useCompleteProfileController = () => {
             const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
             
             if (data) {
-                const publicUrl = data.publicUrl;
-                
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ photo_url: publicUrl })
-                    .eq('id', userProfile.id);
-
-                if (updateError) throw updateError;
-                
-                setUserPhoto(publicUrl);
+                return data.publicUrl;
             }
+            return null;
 
         } catch (error) {
             logger.error('[CompleteProfile Controller] Error uploading image:', error);
             Alert.alert('Error', 'No se pudo subir la imagen.');
+            return null;
         }
     };
 
@@ -114,7 +132,6 @@ export const useCompleteProfileController = () => {
         logger.log('[CompleteProfile Controller] Change profile photo');
         
         try {
-            // Request permission
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
                 Alert.alert('Permiso denegado', 'Necesitamos acceso a tu galería para cambiar la foto.');
@@ -131,10 +148,7 @@ export const useCompleteProfileController = () => {
 
             if (!result.canceled) {
                 const photo = result.assets[0];
-                setUserPhoto(photo.uri); // Optimistic update
-
-                // Upload to Supabase
-                await uploadImage(photo.uri);
+                setUserPhoto(photo.uri);
             }
         } catch (error) {
             logger.error('[CompleteProfile Controller] Error picking image:', error);
@@ -166,6 +180,19 @@ export const useCompleteProfileController = () => {
 
         try {
 
+            let photoUrl = userProfile?.photo_url;
+
+            // Check if photo has changed
+            if (userPhoto && !userPhoto.startsWith('http')) {
+                const uploadedUrl = await uploadImage(userPhoto);
+                if (uploadedUrl) {
+                    if (photoUrl && photoUrl.includes('avatars')) {
+                        await deleteOldImage(photoUrl);
+                    }
+                    photoUrl = uploadedUrl;
+                }
+            }
+
             // alergies
             const newAllergies = allergies.filter(a => a.id.startsWith('temp-'));
 
@@ -186,7 +213,10 @@ export const useCompleteProfileController = () => {
             // Update profile completion flag
             const { error: profileError } = await supabase
                 .from('users')
-                .update({ is_completed: true })
+                .update({ 
+                    is_completed: true,
+                    photo_url: photoUrl
+                })
                 .eq('id', userProfile?.id);
 
             if (profileError) throw profileError;
