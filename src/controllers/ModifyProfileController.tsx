@@ -170,6 +170,7 @@ export const useModifyProfileController = () => {
                         await deleteOldImage(photoUrl);
                     }
                     photoUrl = uploadedUrl;
+                    setUserPhoto(uploadedUrl);
                 }
             }
 
