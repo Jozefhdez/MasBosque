@@ -95,29 +95,44 @@ export const useModifyProfileController = () => {
         setAllergies([...allergies, newAllergy]);
     };
 
-    const deleteOldImage = async (imageUrl: string) => {
-        try {
-            const parts = imageUrl.split('/avatars/');
-            if (parts.length < 2) return;
-            
-            const pathWithParams = parts[1];
-            const path = pathWithParams.split('?')[0];
-            const decodedPath = decodeURIComponent(path);
+    const deleteOldImage = async (imageUrl: string, maxRetries: number = 3): Promise<boolean> => {
+        const parts = imageUrl.split('/avatars/');
+        if (parts.length < 2) return true; // No valid path to delete, nothing to clean up
+        
+        const pathWithParams = parts[1];
+        const path = pathWithParams.split('?')[0];
+        const decodedPath = decodeURIComponent(path);
 
-            logger.log('[ModifyProfile Controller] Attempting to delete:', decodedPath);
+        const getBackoffDelay = (attempt: number) => Math.pow(2, attempt) * 100;
 
-            const { error } = await supabase.storage
-                .from('avatars')
-                .remove([decodedPath]);
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                logger.log(`[ModifyProfile Controller] Attempting to delete (attempt ${attempt}/${maxRetries}):`, decodedPath);
 
-            if (error) {
-                logger.error('[ModifyProfile Controller] Error deleting old image:', error);
-            } else {
-                logger.log('[ModifyProfile Controller] Old image deleted successfully');
+                const { error } = await supabase.storage
+                    .from('avatars')
+                    .remove([decodedPath]);
+
+                if (!error) {
+                    logger.log('[ModifyProfile Controller] Old image deleted successfully');
+                    return true;
+                }
+
+                logger.error(`[ModifyProfile Controller] Error deleting old image (attempt ${attempt}/${maxRetries}):`, error);
+                
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, getBackoffDelay(attempt)));
+                }
+            } catch (error) {
+                logger.error(`[ModifyProfile Controller] Exception deleting old image (attempt ${attempt}/${maxRetries}):`, error);
+                
+                if (attempt < maxRetries) {
+                    await new Promise(resolve => setTimeout(resolve, getBackoffDelay(attempt)));
+                }
             }
-        } catch (error) {
-            logger.error('[ModifyProfile Controller] Exception deleting old image:', error);
         }
+
+        return false;
     };
 
     const handleSave = async () => {
@@ -161,13 +176,18 @@ export const useModifyProfileController = () => {
         try {
 
             let photoUrl = userProfile?.photo_url;
+            let oldImageDeletionFailed = false;
 
             // Check if photo has changed (is a local file URI)
             if (userPhoto && !userPhoto.startsWith('http')) {
                 const uploadedUrl = await uploadImage(userPhoto);
                 if (uploadedUrl) {
                     if (photoUrl && photoUrl.includes('avatars')) {
-                        await deleteOldImage(photoUrl);
+                        const deletionSuccess = await deleteOldImage(photoUrl);
+                        if (!deletionSuccess) {
+                            oldImageDeletionFailed = true;
+                            logger.warn('[ModifyProfile Controller] Old image deletion failed after retries, proceeding with profile update');
+                        }
                     }
                     photoUrl = uploadedUrl;
                     setUserPhoto(uploadedUrl);
@@ -230,9 +250,13 @@ export const useModifyProfileController = () => {
             refreshUser();
             logger.log('[ModifyProfile Controller] Profile changes saved');
 
+            const successMessage = oldImageDeletionFailed 
+                ? 'Tu información ha sido actualizada exitosamente. Nota: La imagen anterior no pudo ser eliminada del almacenamiento.'
+                : 'Tu información ha sido actualizada exitosamente.';
+
             Alert.alert(
                 'Cambios guardados',
-                'Tu información ha sido actualizada exitosamente.',
+                successMessage,
                 [
                     {
                         text: 'OK',
