@@ -20,6 +20,7 @@ export const useSOSController = () => {
 
     const [isConnected, setIsConnected] = useState(false);
     const [isSOSActive, setIsSOSActive] = useState(false);
+    const [alertUUID, setAlertUUID] = useState<string>('');
     const [userName, setUserName] = useState('');
     const [userPhoto, setUserPhoto] = useState<string | null>(null);
 
@@ -39,8 +40,11 @@ export const useSOSController = () => {
     };
 
     const handleSOSPress = async () => {
+        // Generate a new UUID for this SOS session
+        const sessionUUID = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        setAlertUUID(sessionUUID);
         setIsSOSActive(true);
-        logger.log('[SOS Controller] SOS Activated');
+        logger.log('[SOS Controller] SOS Activated with UUID:', sessionUUID);
 
         try {
             await startScan(async (device) => {
@@ -111,6 +115,8 @@ export const useSOSController = () => {
                             userProfile?.id || '',
                             currentLocation.coords.latitude,
                             currentLocation.coords.longitude,
+                            alertUUID,
+                            currentLocation.coords.accuracy,
                         );
                         if (success) {
                             logger.log('[SOS Controller] Payload sent successfully to:', node.name || node.id);
@@ -127,6 +133,7 @@ export const useSOSController = () => {
 
     const handleSOSCancel = async () => {
         setIsSOSActive(false);
+        setAlertUUID('');
         logger.log('[SOS Controller] SOS Cancelled');
         
         // Stop location tracking

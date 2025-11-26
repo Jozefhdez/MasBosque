@@ -1,5 +1,6 @@
 import { Platform, PermissionsAndroid } from 'react-native';
 import { BleManager, Device, State } from 'react-native-ble-plx';
+import { Buffer } from 'buffer';
 import { logger } from '../utils/logger';
 import { LORA_SERVICE_UUID } from '../constants/loraUUIDs';
 
@@ -226,7 +227,8 @@ class BluetoothService {
     user: string,
     latitude: number,
     longitude: number,
-    accuracy?: number | null
+    alertUUID: string,
+    accuracy?: number | null,
   ): Promise<boolean> {
     try {
       // Check if device is still connected
@@ -241,6 +243,7 @@ class BluetoothService {
         user: user,
         lat: latitude,
         lon: longitude,
+        alertUUID: alertUUID,
         acc: accuracy ?? null,
         timestamp: new Date().toISOString(),
       };
