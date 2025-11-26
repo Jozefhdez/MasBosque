@@ -149,9 +149,7 @@ export const PinIcon = ({ size = 24, color = '#fafafa' }: IconProps) => (
 export const BluetoothIcon = ({ size = 24, color = '#fafafa' }: IconProps) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
     <Path 
-      stroke-linecap="round" 
-      stroke-linejoin="round" 
-      d="m8.25 4.5 7.5 7.5-7.5 7.5V4.5ZM12 12.75l3 3m-3-10.5 3 3" 
-    />
+      d="m7 7 10 10-5 5V2l5 5L7 17">
+    </Path>
   </Svg>
 );

@@ -14,6 +14,18 @@ interface BluetoothContextType {
     disconnect: () => Promise<void>;
     requestPermission: () => Promise<boolean>;
     checkPermission: () => Promise<void>;
+    sendLocationData: (
+        serviceUUID: string,
+        characteristicUUID: string,
+        user: number,
+        latitude: number,
+        longitude: number,
+        accuracy?: number | null
+    ) => Promise<boolean>;
+    getServicesAndCharacteristics: () => Promise<{
+        serviceUUID: string;
+        characteristics: Array<{ uuid: string; isWritable: boolean; isReadable: boolean }>;
+    }[]>;
 }
 
 const BluetoothContext = createContext<BluetoothContextType | undefined>(undefined);
@@ -26,30 +38,43 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     // Check permission status on mount and request if not granted
     useEffect(() => {
+        let isMounted = true;
+
         const initializePermission = async () => {
             try {
                 setPermissionLoading(true);
                 const granted = await bluetoothService.checkPermission();
-                logger.log('[Bluetooth Context] Initial permission check:', granted ? 'granted' : 'not granted');
+                
+                if (!isMounted) return;
                 
                 // If permission is not granted, request it automatically
                 if (!granted) {
-                    logger.log('[Bluetooth Context] Permission not granted, requesting automatically');
                     const requestGranted = await bluetoothService.requestPermissions();
+                    
+                    if (!isMounted) return;
+                    
                     setHasPermission(requestGranted);
-                    logger.log('[Bluetooth Context] Permission request result:', requestGranted ? 'granted' : 'denied');
                 } else {
                     setHasPermission(granted);
                 }
             } catch (error) {
+                if (!isMounted) return;
+                
                 logger.error('[Bluetooth Context] Error initializing permission:', error);
                 setHasPermission(false);
             } finally {
-                setPermissionLoading(false);
+                if (isMounted) {
+                    setPermissionLoading(false);
+                }
             }
         };
         
         initializePermission();
+
+        // Cleanup function
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const checkPermission = async () => {
@@ -57,7 +82,6 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
             setPermissionLoading(true);
             const granted = await bluetoothService.checkPermission();
             setHasPermission(granted);
-            logger.log('[Bluetooth Context] Permission status:', granted ? 'granted' : 'not granted');
         } catch (error) {
             logger.error('[Bluetooth Context] Error checking permission:', error);
             setHasPermission(false);
@@ -68,7 +92,6 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const requestPermission = async (): Promise<boolean> => {
         try {
-            logger.log('[Bluetooth Context] Requesting permission');
             const granted = await bluetoothService.requestPermissions();
             setHasPermission(granted);
             return granted;
@@ -81,12 +104,10 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const startScan = async (onDeviceFound: (device: Device) => void) => {
         if (isScanning) {
-            logger.log('[Bluetooth Context] Already scanning');
             return;
         }
 
         try {
-            logger.log('[Bluetooth Context] Starting BLE scan');
             await bluetoothService.startScan(onDeviceFound);
             setIsScanning(true);
         } catch (error) {
@@ -101,14 +122,12 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
     };
 
     const stopScan = () => {
-        logger.log('[Bluetooth Context] Stopping BLE scan');
         bluetoothService.stopScan();
         setIsScanning(false);
     };
 
     const connect = async (deviceId: string): Promise<Device | null> => {
         try {
-            logger.log('[Bluetooth Context] Connecting to device:', deviceId);
             const device = await bluetoothService.connect(deviceId);
             setConnectedDevice(device);
             return device;
@@ -120,14 +139,60 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const disconnect = async () => {
         if (!connectedDevice) {
-            logger.log('[Bluetooth Context] No device connected');
             return;
         }
 
-        logger.log('[Bluetooth Context] Disconnecting from device');
         await bluetoothService.disconnect(connectedDevice.id);
         setConnectedDevice(null);
     };
+
+    const sendLocationData = async (
+        serviceUUID: string,
+        characteristicUUID: string,
+        user: number,
+        latitude: number,
+        longitude: number,
+        accuracy?: number | null
+    ): Promise<boolean> => {
+
+        if (!connectedDevice) {
+            logger.error('[Bluetooth Context] No device connected');
+            return false;
+        }
+
+        return await bluetoothService.sendLocationData(
+            connectedDevice,
+            serviceUUID,
+            characteristicUUID,
+            user,
+            latitude,
+            longitude,
+        );
+    };
+
+    const getServicesAndCharacteristics = async () => {
+        if (!connectedDevice) {
+            logger.error('[Bluetooth Context] No device connected');
+            return [];
+        }
+
+        return await bluetoothService.getServicesAndCharacteristics(connectedDevice);
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            logger.log('[Bluetooth Context] Cleaning up on unmount');
+            if (isScanning) {
+                bluetoothService.stopScan();
+            }
+            if (connectedDevice) {
+                bluetoothService.disconnect(connectedDevice.id).catch((error) => {
+                    logger.error('[Bluetooth Context] Error disconnecting on unmount:', error);
+                });
+            }
+        };
+    }, [isScanning, connectedDevice]);
 
     const value: BluetoothContextType = {
         connectedDevice,
@@ -140,6 +205,8 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
         disconnect,
         requestPermission,
         checkPermission,
+        sendLocationData,
+        getServicesAndCharacteristics,
     };
 
     return <BluetoothContext.Provider value={value}>{children}</BluetoothContext.Provider>;

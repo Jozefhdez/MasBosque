@@ -24,30 +24,43 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     // Check permission status on mount and request if not granted
     useEffect(() => {
+        let isMounted = true;
+
         const initializePermission = async () => {
             try {
                 setPermissionLoading(true);
                 const granted = await locationService.checkPermission();
-                logger.log('[Location Context] Initial permission check:', granted ? 'granted' : 'not granted');
+                
+                if (!isMounted) return;
                 
                 // If permission is not granted, request it automatically
                 if (!granted) {
-                    logger.log('[Location Context] Permission not granted, requesting automatically');
                     const requestGranted = await locationService.requestPermissions();
+                    
+                    if (!isMounted) return;
+                    
                     setHasPermission(requestGranted);
-                    logger.log('[Location Context] Permission request result:', requestGranted ? 'granted' : 'denied');
                 } else {
                     setHasPermission(granted);
                 }
             } catch (error) {
+                if (!isMounted) return;
+                
                 logger.error('[Location Context] Error initializing permission:', error);
                 setHasPermission(false);
             } finally {
-                setPermissionLoading(false);
+                if (isMounted) {
+                    setPermissionLoading(false);
+                }
             }
         };
         
         initializePermission();
+
+        // Cleanup function
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const checkPermission = async () => {
@@ -55,7 +68,6 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
             setPermissionLoading(true);
             const granted = await locationService.checkPermission();
             setHasPermission(granted);
-            logger.log('[Location Context] Permission status:', granted ? 'granted' : 'not granted');
         } catch (error) {
             logger.error('[Location Context] Error checking permission:', error);
             setHasPermission(false);
@@ -66,7 +78,6 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const requestPermission = async (): Promise<boolean> => {
         try {
-            logger.log('[Location Context] Requesting permission');
             const granted = await locationService.requestPermissions();
             setHasPermission(granted);
             return granted;
@@ -79,12 +90,10 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const startTracking = async () => {
         if (isTracking) {
-            logger.log('[Location Context] Already tracking');
             return;
         }
 
         try {
-            logger.log('[Location Context] Starting location tracking');
             await locationService.startTracking((location) => {
                 setCurrentLocation(location);
             });
@@ -101,11 +110,20 @@ export const LocationProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     const stopTracking = () => {
-        logger.log('[Location Context] Stopping location tracking');
         locationService.stopTracking();
         setIsTracking(false);
         setCurrentLocation(null);
     };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (isTracking) {
+                logger.info('[Location Context] Cleaning up on unmount');
+                locationService.stopTracking();
+            }
+        };
+    }, [isTracking]);
 
     const value: LocationContextType = {
         currentLocation,

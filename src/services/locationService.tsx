@@ -40,33 +40,44 @@ class LocationService {
   }
 
   // Start tracking location (works offline with GPS)
-  async startTracking(callback: (location: Location.LocationObject) => void) {
+  async startTracking(callback: (location: Location.LocationObject) => void): Promise<void> {
+    try {
+      // Stop any existing subscription first
+      this.stopTracking();
 
-    this.locationSubscription = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High, // Uses GPS
-        timeInterval: 1000, // Update every second
-      },
-      (location) => {
-        callback(location);
-      }
-    );
-    
-  }
-
-  // Stop tracking
-  stopTracking() {
-    if (this.locationSubscription) {
-      this.locationSubscription.remove();
-      this.locationSubscription = null;
+      logger.info('[Location Service] Starting location tracking');
+      
+      this.locationSubscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High, // Uses GPS
+          timeInterval: 1000, // Update every second
+          distanceInterval: 0, // Update on any movement
+        },
+        (location) => {
+          callback(location);
+        }
+      );
+      
+      logger.info('[Location Service] Location tracking started successfully');
+    } catch (error) {
+      logger.error('[Location Service] Error starting location tracking:', error);
+      throw error;
     }
   }
 
-  // Get current position (one-time)
-  async getCurrentPosition(): Promise<Location.LocationObject> {
-    return await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
+  // Stop tracking
+  stopTracking(): void {
+    if (this.locationSubscription) {
+      try {
+        this.locationSubscription.remove();
+        this.locationSubscription = null;
+        logger.info('[Location Service] Location tracking stopped');
+      } catch (error) {
+        logger.error('[Location Service] Error stopping location tracking:', error);
+        // Still set to null to prevent memory leaks
+        this.locationSubscription = null;
+      }
+    }
   }
 }
 

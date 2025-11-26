@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 
 class BluetoothService {
   private manager: BleManager = new BleManager();
-  private scanSubscription: any = null;
+  private isCurrentlyScanning: boolean = false;
 
   // Check current Bluetooth permission status
   async checkPermission(): Promise<boolean> {
@@ -51,13 +51,62 @@ class BluetoothService {
   async requestPermissions(): Promise<boolean> {
     try {
       if (Platform.OS === 'ios') {
-        // iOS handles BLE permissions automatically
+        // iOS shows the permission dialog when scanning starts
+        // We trigger a brief scan to prompt for permission
         const state = await this.manager.state();
-        if (state !== State.PoweredOn) {
-          logger.warn('[Bluetooth Service] Bluetooth is not powered on');
+        logger.log('[Bluetooth Service] Bluetooth state:', state);
+        
+        if (state === State.Unauthorized) {
+          logger.warn('[Bluetooth Service] Bluetooth permission denied');
           return false;
         }
-        return true;
+        
+        if (state === State.PoweredOff) {
+          logger.warn('[Bluetooth Service] Bluetooth is powered off');
+          return false;
+        }
+        
+        if (state === State.PoweredOn) {
+          // Trigger a brief scan to prompt for permission if not already granted
+          return new Promise<boolean>((resolve) => {
+            logger.log('[Bluetooth Service] Triggering scan to request permission');
+            let resolved = false;
+            
+            this.manager.startDeviceScan(
+              null,
+              { allowDuplicates: false },
+              (error, device) => {
+                if (resolved) return;
+                
+                // Stop the scan
+                this.manager.stopDeviceScan();
+                resolved = true;
+                
+                if (error) {
+                  logger.error('[Bluetooth Service] Permission scan error:', error);
+                  resolve(error.message.includes('unauthorized') ? false : false);
+                } else {
+                  // Successfully started scanning, permission granted
+                  logger.log('[Bluetooth Service] Permission granted');
+                  resolve(true);
+                }
+              }
+            );
+            
+            // Auto-stop after 1 second to ensure we don't scan unnecessarily
+            setTimeout(() => {
+              if (!resolved) {
+                this.manager.stopDeviceScan();
+                resolved = true;
+                resolve(true);
+              }
+            }, 1000);
+          });
+        }
+        
+        // For Unknown or Resetting states, return false
+        logger.warn('[Bluetooth Service] Bluetooth is not ready, state:', state);
+        return false;
       }
 
       if (Platform.OS === 'android') {
@@ -98,12 +147,15 @@ class BluetoothService {
       this.stopScan(); // Stop any existing scan
 
       logger.info('[Bluetooth Service] Starting BLE scan');
-      this.scanSubscription = this.manager.startDeviceScan(
+      this.isCurrentlyScanning = true;
+      
+      this.manager.startDeviceScan(
         null,
         { allowDuplicates: false },
         (error, device) => {
           if (error) {
             logger.error('[Bluetooth Service] Scan error:', error);
+            this.isCurrentlyScanning = false;
             return;
           }
 
@@ -115,14 +167,16 @@ class BluetoothService {
       );
     } catch (error) {
       logger.error('[Bluetooth Service] Error starting scan:', error);
+      this.isCurrentlyScanning = false;
+      throw error;
     }
   }
 
   // Stop scanning
   stopScan(): void {
-    if (this.scanSubscription) {
+    if (this.isCurrentlyScanning) {
       this.manager.stopDeviceScan();
-      this.scanSubscription = null;
+      this.isCurrentlyScanning = false;
       logger.info('[Bluetooth Service] Scan stopped');
     }
   }
@@ -148,6 +202,87 @@ class BluetoothService {
       logger.info('[Bluetooth Service] Disconnected from device');
     } catch (error) {
       logger.error('[Bluetooth Service] Disconnect error:', error);
+    }
+  }
+
+  // Send location data to a connected device
+  async sendLocationData(
+    device: Device,
+    serviceUUID: string,
+    characteristicUUID: string,
+    user: number,
+    latitude: number,
+    longitude: number,
+    accuracy?: number | null
+  ): Promise<boolean> {
+    try {
+      // Create a JSON payload with location data
+      const locationPayload = {
+        user: user,
+        lat: latitude,
+        lon: longitude,
+        acc: accuracy ?? null,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Convert to JSON string and then to base64
+      const jsonString = JSON.stringify(locationPayload);
+      const base64Data = Buffer.from(jsonString, 'utf-8').toString('base64');
+
+      logger.info('[Bluetooth Service] Sending location data:', locationPayload);
+
+      // Write to the characteristic
+      await device.writeCharacteristicWithResponseForService(
+        serviceUUID,
+        characteristicUUID,
+        base64Data
+      );
+
+      logger.info('[Bluetooth Service] Location data sent successfully');
+      return true;
+    } catch (error) {
+      logger.error('[Bluetooth Service] Error sending location data:', error);
+      return false;
+    }
+  }
+
+  // Get all services and characteristics from a device
+  async getServicesAndCharacteristics(device: Device): Promise<{
+    serviceUUID: string;
+    characteristics: Array<{ uuid: string; isWritable: boolean; isReadable: boolean }>;
+  }[]> {
+    try {
+      const services = await device.services();
+      const result = [];
+
+      for (const service of services) {
+        const characteristics = await device.characteristicsForService(service.uuid);
+        const charInfo = characteristics.map(char => ({
+          uuid: char.uuid,
+          isWritable: char.isWritableWithResponse || char.isWritableWithoutResponse,
+          isReadable: char.isReadable,
+        }));
+
+        result.push({
+          serviceUUID: service.uuid,
+          characteristics: charInfo,
+        });
+      }
+
+      logger.info('[Bluetooth Service] Services and characteristics:', result);
+      return result;
+    } catch (error) {
+      logger.error('[Bluetooth Service] Error getting services/characteristics:', error);
+      return [];
+    }
+  }
+
+  // Clean up resources
+  destroy(): void {
+    this.stopScan();
+    if (this.manager) {
+      this.manager.destroy();
+      logger.info('[Bluetooth Service] Manager destroyed');
     }
   }
 }

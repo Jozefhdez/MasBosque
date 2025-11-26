@@ -14,7 +14,7 @@ export default function BluetoothPermissionScreen() {
                 />
                 <Text style={styles.title}>Permiso de Bluetooth requerido</Text>
                 <Text style={styles.description}>
-                    MasBosque necesita acceso a Bluetooth para comunicarse con dispositivos cercanos en caso de emergencia cuando no hay conexión a internet.
+                    MasBosque necesita acceso a Bluetooth para comunicarse con la red de MasBosque y proporcionar servicios de emergencia.
                 </Text>
 
                 <TouchableOpacity style={styles.primaryButton} onPress={handleOpenSettings}>
