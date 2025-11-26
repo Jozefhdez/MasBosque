@@ -10,14 +10,14 @@ interface BluetoothContextType {
     permissionLoading: boolean;
     startScan: (onDeviceFound: (device: Device) => void) => Promise<void>;
     stopScan: () => void;
-    connect: (deviceId: string) => Promise<Device | null>;
+    connect: (deviceId: string, onDisconnected?: (deviceId: string) => void) => Promise<Device | null>;
     disconnect: () => Promise<void>;
     requestPermission: () => Promise<boolean>;
     checkPermission: () => Promise<void>;
     sendLocationData: (
         serviceUUID: string,
         characteristicUUID: string,
-        user: number,
+        user: string,
         latitude: number,
         longitude: number,
         accuracy?: number | null
@@ -126,9 +126,18 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
         setIsScanning(false);
     };
 
-    const connect = async (deviceId: string): Promise<Device | null> => {
+    const connect = async (deviceId: string, onDisconnected?: (deviceId: string) => void): Promise<Device | null> => {
         try {
             const device = await bluetoothService.connect(deviceId);
+            if (device) {
+
+                device.onDisconnected((error, disconnectedDevice) => {
+                    logger.warn('[Bluetooth Context] Device disconnected:', disconnectedDevice?.id || deviceId);
+                    if (onDisconnected) {
+                        onDisconnected(deviceId);
+                    }
+                });
+            }
             setConnectedDevice(device);
             return device;
         } catch (error) {
@@ -149,7 +158,7 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
     const sendLocationData = async (
         serviceUUID: string,
         characteristicUUID: string,
-        user: number,
+        user: string,
         latitude: number,
         longitude: number,
         accuracy?: number | null
@@ -182,9 +191,9 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            logger.log('[Bluetooth Context] Cleaning up on unmount');
             if (isScanning) {
                 bluetoothService.stopScan();
+                logger.log('[Bluetooth Context] Cleaning up on unmount');
             }
             if (connectedDevice) {
                 bluetoothService.disconnect(connectedDevice.id).catch((error) => {

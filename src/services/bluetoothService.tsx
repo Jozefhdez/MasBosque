@@ -1,6 +1,7 @@
 import { Platform, PermissionsAndroid } from 'react-native';
 import { BleManager, Device, State } from 'react-native-ble-plx';
 import { logger } from '../utils/logger';
+import { LORA_SERVICE_UUID } from '../constants/loraUUIDs';
 
 class BluetoothService {
   private manager: BleManager = new BleManager();
@@ -150,7 +151,7 @@ class BluetoothService {
       this.isCurrentlyScanning = true;
       
       this.manager.startDeviceScan(
-        null,
+        [LORA_SERVICE_UUID],
         { allowDuplicates: false },
         (error, device) => {
           if (error) {
@@ -159,9 +160,15 @@ class BluetoothService {
             return;
           }
 
-          if (device && device.name) {
-            logger.debug('[Bluetooth Service] Device found:', device.name);
-            onDeviceFound(device);
+          if (device) {
+            const hasValidName = !device.name || 
+                                 device.name.toLowerCase().includes('ttgo') || 
+                                 device.name.toLowerCase().includes('lora');
+            
+            if (hasValidName) {
+              logger.debug('[Bluetooth Service] LoRa node found:', device.name || device.id);
+              onDeviceFound(device);
+            }
           }
         }
       );
@@ -187,6 +194,12 @@ class BluetoothService {
       logger.info('[Bluetooth Service] Connecting to device:', deviceId);
       const device = await this.manager.connectToDevice(deviceId);
       await device.discoverAllServicesAndCharacteristics();
+      
+      // Monitor disconnection
+      device.onDisconnected((error, disconnectedDevice) => {
+        logger.warn('[Bluetooth Service] Device disconnected:', disconnectedDevice?.name || deviceId, error);
+      });
+      
       logger.info('[Bluetooth Service] Connected to device:', device.name);
       return device;
     } catch (error) {
@@ -210,12 +223,19 @@ class BluetoothService {
     device: Device,
     serviceUUID: string,
     characteristicUUID: string,
-    user: number,
+    user: string,
     latitude: number,
     longitude: number,
     accuracy?: number | null
   ): Promise<boolean> {
     try {
+      // Check if device is still connected
+      const isConnected = await device.isConnected();
+      if (!isConnected) {
+        logger.warn('[Bluetooth Service] Device is not connected, cannot send data');
+        return false;
+      }
+
       // Create a JSON payload with location data
       const locationPayload = {
         user: user,
