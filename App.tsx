@@ -7,6 +7,7 @@ import AppNavigator from './src/navigation/AppNavigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { UserProvider } from './src/contexts/UserContext';
 import { LocationProvider } from './src/contexts/LocationContext';
+import { BluetoothProvider } from './src/contexts/BluetoothContext';
 import * as Sentry from '@sentry/react-native';
 
 // Initialize Sentry for error tracking
@@ -46,10 +47,12 @@ function App() {
     <AuthProvider>
       <UserProvider>
         <LocationProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <AppNavigator />
-            <StatusBar />
-          </GestureHandlerRootView>
+          <BluetoothProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <AppNavigator />
+              <StatusBar />
+            </GestureHandlerRootView>
+          </BluetoothProvider>
         </LocationProvider>
       </UserProvider>
     </AuthProvider>

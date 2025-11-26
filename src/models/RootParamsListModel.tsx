@@ -9,6 +9,7 @@ export type RootStackParamList = {
     Profile: undefined;
     ModifyProfile: undefined;
     LocationPermission: undefined;
+    BluetoothPermission: undefined;
 };
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
