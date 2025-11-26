@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "MasBosque necesita acceso a tu ubicación para proveer servicios de rescate en caso de emergencia.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "MasBosque necesita acceso a tu ubicación en segundo plano para proveer servicios de rescate en caso de emergencia.",
+        "NSLocationAlwaysUsageDescription": "MasBosque necesita acceso a tu ubicación continua en segundo plano para proveer servicios de rescate en caso de emergencia."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +24,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -27,6 +37,16 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permitir a MasBosque acceder a tu ubicación para poder brindarte servicios de emergencia.",
+          "locationAlwaysPermission": "Permitir a MasBosque usar tu ubicación en segundo plano durante emergencias.",
+          "locationWhenInUsePermission": "Permitir a MasBosque usar tu ubicación mientras usas la app.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
       [
         "expo-splash-screen",
         {

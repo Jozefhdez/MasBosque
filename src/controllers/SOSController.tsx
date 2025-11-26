@@ -3,6 +3,7 @@ import { NavigationProp } from '../models/RootParamsListModel';
 import { logger } from '../utils/logger';
 import { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
+import { useLocation } from '../contexts/LocationContext';
 
 
 export const useSOSController = () => {
@@ -10,6 +11,7 @@ export const useSOSController = () => {
     const navigation = useNavigation<NavigationProp>();
 
     const { userProfile, loading } = useUser();
+    const { currentLocation, startTracking, stopTracking, isTracking } = useLocation();
 
     const [isConnected, setIsConnected] = useState(false);
     const [isSOSActive, setIsSOSActive] = useState(false);
@@ -31,16 +33,36 @@ export const useSOSController = () => {
         navigation.navigate('Profile');
     };
 
-    const handleSOSPress = () => {
+    const handleSOSPress = async () => {
         setIsSOSActive(true);
         logger.log('[SOS Controller] SOS Activated');
-        // TODO: SOS activation logic
+        
+        try {
+            await startTracking();
+        } catch (error) {
+            logger.error('[SOS Controller] Location tracking failed:', error);
+            setIsSOSActive(false);
+        }
     };
+
+    // Log location updates when SOS is active
+    useEffect(() => {
+        if (isSOSActive && currentLocation) {
+            logger.log('[SOS Controller] Location updated:', {
+                lat: currentLocation.coords.latitude,
+                lon: currentLocation.coords.longitude,
+                timestamp: new Date(currentLocation.timestamp).toISOString()
+            });
+            // TODO: Send location to emergency contacts or Bluetooth
+        }
+    }, [currentLocation, isSOSActive]);
 
     const handleSOSCancel = () => {
         setIsSOSActive(false);
         logger.log('[SOS Controller] SOS Cancelled');
-        // TODO: SOS cancellation logic
+        
+        // Stop location tracking when SOS is cancelled
+        stopTracking();
     };
 
     return {
@@ -48,6 +70,7 @@ export const useSOSController = () => {
         isSOSActive,
         userName,
         userPhoto,
+        currentLocation,
         handleGoProfile,
         handleSOSPress,
         handleSOSCancel

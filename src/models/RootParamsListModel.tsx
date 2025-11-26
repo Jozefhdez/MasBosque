@@ -8,6 +8,7 @@ export type RootStackParamList = {
     SOS: undefined;
     Profile: undefined;
     ModifyProfile: undefined;
+    LocationPermission: undefined;
 };
 
 export type NavigationProp = NativeStackNavigationProp<RootStackParamList>;

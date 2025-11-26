@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigation';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { UserProvider } from './src/contexts/UserContext';
+import { LocationProvider } from './src/contexts/LocationContext';
 import * as Sentry from '@sentry/react-native';
 
 // Initialize Sentry for error tracking
@@ -44,10 +45,12 @@ function App() {
   return (
     <AuthProvider>
       <UserProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <AppNavigator />
-          <StatusBar />
-        </GestureHandlerRootView>
+        <LocationProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <AppNavigator />
+            <StatusBar />
+          </GestureHandlerRootView>
+        </LocationProvider>
       </UserProvider>
     </AuthProvider>
   );
