@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { RootStackParamList } from '../models/RootParamsListModel';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
+import { useLocation } from '../contexts/LocationContext';
 import LandingScreen from '../views/screens/LandingScreen';
 import SignInScreen from '../views/screens/SignInScreen';
 import SignUpScreen from '../views/screens/SignUpScreen';
@@ -11,6 +12,7 @@ import CompleteProfileScreen from '../views/screens/CompleteProfileScreen';
 import ProfileScreen from '../views/screens/ProfileScreen';
 import ModifyProfileScreen from '../views/screens/ModifyProfileScreen';
 import SOSScreen from '../views/screens/SOSScreen';
+import LocationPermissionScreen from '../views/screens/LocationPermissionScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -18,8 +20,9 @@ export default function AppNavigator() {
 
     const { user, loading: authLoading } = useAuth();
     const { userProfile, loading: userLoading } = useUser();
+    const { hasPermission, permissionLoading } = useLocation();
 
-    if (authLoading || userLoading) {
+    if (authLoading || userLoading || permissionLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#003706" />
@@ -31,6 +34,7 @@ export default function AppNavigator() {
     const getInitialRoute = () => {
         if (!user) return "Landing";
         if (userProfile && !userProfile.is_completed) return "CompleteProfile";
+        if (user && hasPermission === false) return "LocationPermission";
         return "SOS";
     };
 
@@ -81,6 +85,11 @@ export default function AppNavigator() {
                             name="ModifyProfile" 
                             component={ModifyProfileScreen}
                             options={{ title: 'Modify Profile Screen' }}
+                        />
+                        <Stack.Screen 
+                            name="LocationPermission" 
+                            component={LocationPermissionScreen}
+                            options={{ title: 'Location Permission Screen' }}
                         />
                     </>
                 )}
