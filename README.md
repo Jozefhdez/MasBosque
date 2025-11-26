@@ -148,8 +148,8 @@ Volunteer rescue teams access a dedicated web interface featuring:
 - Basic emergency response dashboard
 
 ### In Development 🚧
+- Bluetooth-LoRa integration (service layer complete, requires BLE library)
 - LoRa mesh network hardware deployment
-- Bluetooth-LoRa bridge protocol
 - Advanced analytics dashboard
 - Multi-language support
 

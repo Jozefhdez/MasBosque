@@ -5,6 +5,7 @@ import { RootStackParamList } from '../models/RootParamsListModel';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { useLocation } from '../contexts/LocationContext';
+import { useBluetooth } from '../contexts/BluetoothContext';
 import LandingScreen from '../views/screens/LandingScreen';
 import SignInScreen from '../views/screens/SignInScreen';
 import SignUpScreen from '../views/screens/SignUpScreen';
@@ -13,6 +14,7 @@ import ProfileScreen from '../views/screens/ProfileScreen';
 import ModifyProfileScreen from '../views/screens/ModifyProfileScreen';
 import SOSScreen from '../views/screens/SOSScreen';
 import LocationPermissionScreen from '../views/screens/LocationPermissionScreen';
+import BluetoothPermissionScreen from '../views/screens/BluetoothPermissionScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -21,8 +23,9 @@ export default function AppNavigator() {
     const { user, loading: authLoading } = useAuth();
     const { userProfile, loading: userLoading } = useUser();
     const { hasPermission, permissionLoading } = useLocation();
+    const { hasPermission: hasBluetoothPermission, permissionLoading: bluetoothPermissionLoading } = useBluetooth();
 
-    if (authLoading || userLoading || permissionLoading) {
+    if (authLoading || userLoading || permissionLoading || bluetoothPermissionLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" color="#003706" />
@@ -35,6 +38,7 @@ export default function AppNavigator() {
         if (!user) return "Landing";
         if (userProfile && !userProfile.is_completed) return "CompleteProfile";
         if (user && hasPermission === false) return "LocationPermission";
+        if (user && hasBluetoothPermission === false) return "BluetoothPermission";
         return "SOS";
     };
 
@@ -90,6 +94,11 @@ export default function AppNavigator() {
                             name="LocationPermission" 
                             component={LocationPermissionScreen}
                             options={{ title: 'Location Permission Screen' }}
+                        />
+                        <Stack.Screen 
+                            name="BluetoothPermission" 
+                            component={BluetoothPermissionScreen}
+                            options={{ title: 'Bluetooth Permission Screen' }}
                         />
                     </>
                 )}

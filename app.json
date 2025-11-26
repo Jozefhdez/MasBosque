@@ -13,8 +13,12 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "MasBosque necesita acceso a tu ubicación para proveer servicios de rescate en caso de emergencia.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "MasBosque necesita acceso a tu ubicación en segundo plano para proveer servicios de rescate en caso de emergencia.",
-        "NSLocationAlwaysUsageDescription": "MasBosque necesita acceso a tu ubicación continua en segundo plano para proveer servicios de rescate en caso de emergencia."
-      }
+        "NSLocationAlwaysUsageDescription": "MasBosque necesita acceso a tu ubicación continua en segundo plano para proveer servicios de rescate en caso de emergencia.",
+        "NSBluetoothAlwaysUsageDescription": "MasBosque necesita acceso a Bluetooth para conectarse a dispositivos de emergencia y enviar alertas SOS.",
+        "NSBluetoothPeripheralUsageDescription": "MasBosque necesita acceso a Bluetooth para conectarse a dispositivos de emergencia y enviar alertas SOS.",
+        "UIBackgroundModes": ["bluetooth-central", "location"]
+      },
+      "bundleIdentifier": "com.anonymous.masbosque"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,8 +32,14 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION"
-      ]
+        "ACCESS_BACKGROUND_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      ],
+      "package": "com.anonymous.masbosque"
     },
     "web": {
       "output": "static",

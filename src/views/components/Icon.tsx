@@ -145,3 +145,11 @@ export const PinIcon = ({ size = 24, color = '#fafafa' }: IconProps) => (
     />
   </Svg>
 );
+
+export const BluetoothIcon = ({ size = 24, color = '#fafafa' }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2}>
+    <Path 
+      d="m7 7 10 10-5 5V2l5 5L7 17">
+    </Path>
+  </Svg>
+);
