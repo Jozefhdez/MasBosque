@@ -29,13 +29,6 @@ export default function SOSInactiveView({
         </View>
       </TouchableOpacity>
 
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, { backgroundColor: isConnected ? '#06C000' : '#BB0003' }]} />
-        <Text style={styles.statusText}>
-          {isConnected ? 'Conectado a la red' : 'Sin conexión'}
-        </Text>
-      </View>
-
       <TouchableOpacity 
         style={styles.userCard}
         onPress={onProfilePress}
@@ -81,7 +74,7 @@ const styles = StyleSheet.create({
     letterSpacing: 8,
   },
   hexagonButton: {
-    marginTop: -30,
+    marginTop: -100,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -89,22 +82,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  statusDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 100,
-    marginRight: 10,
-  },
-  statusText: {
-    fontFamily: 'IBMPlexSansDevanagari-Medium',
-    fontSize: 18,
-    color: '#333',
   },
   userCard: {
     flexDirection: 'row',
