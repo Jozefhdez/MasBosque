@@ -224,10 +224,10 @@ class BluetoothService {
     device: Device,
     serviceUUID: string,
     characteristicUUID: string,
+    alertUUID: string,
     user: string,
     latitude: number,
     longitude: number,
-    alertUUID: string,
     accuracy?: number | null,
   ): Promise<boolean> {
     try {
@@ -240,10 +240,10 @@ class BluetoothService {
 
       // Create a JSON payload with location data
       const locationPayload = {
+        alertUUID: alertUUID,
         user: user,
         lat: latitude,
         lon: longitude,
-        alertUUID: alertUUID,
         acc: accuracy ?? null,
         timestamp: new Date().toISOString(),
       };

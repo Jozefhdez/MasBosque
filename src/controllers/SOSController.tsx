@@ -7,6 +7,7 @@ import { useLocation } from '../contexts/LocationContext';
 import { useBluetooth } from '../contexts/BluetoothContext';
 import { Device } from 'react-native-ble-plx';
 import { LORA_SERVICE_UUID, LORA_LOCATION_CHARACTERISTIC_UUID } from '../constants/loraUUIDs';
+import { randomUUID } from 'expo-crypto';
 
 export const useSOSController = () => {
 
@@ -41,7 +42,7 @@ export const useSOSController = () => {
 
     const handleSOSPress = async () => {
         // Generate a new UUID for this SOS session
-        const sessionUUID = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+        const sessionUUID = randomUUID();
         setAlertUUID(sessionUUID);
         setIsSOSActive(true);
         logger.log('[SOS Controller] SOS Activated with UUID:', sessionUUID);
@@ -112,10 +113,10 @@ export const useSOSController = () => {
                         const success = await sendLocationData(
                             LORA_SERVICE_UUID,
                             LORA_LOCATION_CHARACTERISTIC_UUID,
+                            alertUUID,
                             userProfile?.id || '',
                             currentLocation.coords.latitude,
                             currentLocation.coords.longitude,
-                            alertUUID,
                             currentLocation.coords.accuracy,
                         );
                         if (success) {
