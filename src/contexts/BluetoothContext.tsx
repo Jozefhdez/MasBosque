@@ -11,7 +11,7 @@ interface BluetoothContextType {
     startScan: (onDeviceFound: (device: Device) => void) => Promise<void>;
     stopScan: () => void;
     connect: (deviceId: string, onDisconnected?: (deviceId: string) => void) => Promise<Device | null>;
-    disconnect: () => Promise<void>;
+    disconnect: (deviceId?: string) => Promise<void>;
     requestPermission: () => Promise<boolean>;
     checkPermission: () => Promise<void>;
     sendLocationData: (
@@ -130,13 +130,11 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
     const connect = async (deviceId: string, onDisconnected?: (deviceId: string) => void): Promise<Device | null> => {
         try {
             const device = await bluetoothService.connect(deviceId);
-            if (device) {
-
+            if (device && onDisconnected) {
+                // Set up the disconnect callback if provided
                 device.onDisconnected((error, disconnectedDevice) => {
                     logger.warn('[Bluetooth Context] Device disconnected:', disconnectedDevice?.id || deviceId);
-                    if (onDisconnected) {
-                        onDisconnected(deviceId);
-                    }
+                    onDisconnected(deviceId);
                 });
             }
             setConnectedDevice(device);
@@ -147,7 +145,18 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
         }
     };
 
-    const disconnect = async () => {
+    const disconnect = async (deviceId?: string) => {
+        // If a specific deviceId is provided, disconnect that device
+        if (deviceId) {
+            await bluetoothService.disconnect(deviceId);
+            // Only clear connectedDevice if it matches the disconnected device
+            if (connectedDevice?.id === deviceId) {
+                setConnectedDevice(null);
+            }
+            return;
+        }
+        
+        // Otherwise, disconnect the current connected device
         if (!connectedDevice) {
             return;
         }
@@ -199,13 +208,10 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
                 bluetoothService.stopScan();
                 logger.log('[Bluetooth Context] Cleaning up on unmount');
             }
-            if (connectedDevice) {
-                bluetoothService.disconnect(connectedDevice.id).catch((error) => {
-                    logger.error('[Bluetooth Context] Error disconnecting on unmount:', error);
-                });
-            }
+            // Note: Don't disconnect here - let the controller handle disconnection
+            // to avoid double-disconnect errors
         };
-    }, [isScanning, connectedDevice]);
+    }, [isScanning]);
 
     const value: BluetoothContextType = {
         connectedDevice,

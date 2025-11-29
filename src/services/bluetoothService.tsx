@@ -7,6 +7,7 @@ import { LORA_SERVICE_UUID } from '../constants/loraUUIDs';
 class BluetoothService {
   private manager: BleManager = new BleManager();
   private isCurrentlyScanning: boolean = false;
+  private discoveredDeviceIds: Set<string> = new Set();
 
   // Check current Bluetooth permission status
   async checkPermission(): Promise<boolean> {
@@ -150,6 +151,7 @@ class BluetoothService {
 
       logger.info('[Bluetooth Service] Starting BLE scan');
       this.isCurrentlyScanning = true;
+      this.discoveredDeviceIds.clear(); // Clear the set for this scan session
       
       this.manager.startDeviceScan(
         [LORA_SERVICE_UUID],
@@ -167,6 +169,12 @@ class BluetoothService {
                                  device.name.toLowerCase().includes('lora');
             
             if (hasValidName) {
+              // Check if we've already reported this device in this scan session
+              if (this.discoveredDeviceIds.has(device.id)) {
+                return; // Skip duplicate
+              }
+              
+              this.discoveredDeviceIds.add(device.id);
               logger.debug('[Bluetooth Service] LoRa node found:', device.name || device.id);
               onDeviceFound(device);
             }
@@ -185,6 +193,7 @@ class BluetoothService {
     if (this.isCurrentlyScanning) {
       this.manager.stopDeviceScan();
       this.isCurrentlyScanning = false;
+      this.discoveredDeviceIds.clear();
       logger.info('[Bluetooth Service] Scan stopped');
     }
   }
@@ -195,11 +204,6 @@ class BluetoothService {
       logger.info('[Bluetooth Service] Connecting to device:', deviceId);
       const device = await this.manager.connectToDevice(deviceId);
       await device.discoverAllServicesAndCharacteristics();
-      
-      // Monitor disconnection
-      device.onDisconnected((error, disconnectedDevice) => {
-        logger.warn('[Bluetooth Service] Device disconnected:', disconnectedDevice?.name || deviceId, error);
-      });
       
       logger.info('[Bluetooth Service] Connected to device:', device.name);
       return device;
@@ -212,10 +216,22 @@ class BluetoothService {
   // Disconnect from a device
   async disconnect(deviceId: string): Promise<void> {
     try {
+      // Check if the device is still connected before attempting disconnect
+      const isConnected = await this.manager.isDeviceConnected(deviceId);
+      if (!isConnected) {
+        logger.info('[Bluetooth Service] Device already disconnected:', deviceId);
+        return;
+      }
+      
       await this.manager.cancelDeviceConnection(deviceId);
       logger.info('[Bluetooth Service] Disconnected from device');
     } catch (error) {
-      logger.error('[Bluetooth Service] Disconnect error:', error);
+      // Ignore "operation cancelled" errors as they're expected during cleanup
+      if (error instanceof Error && error.message.includes('Operation was cancelled')) {
+        logger.info('[Bluetooth Service] Disconnect operation cancelled (expected during cleanup)');
+      } else {
+        logger.error('[Bluetooth Service] Disconnect error:', error);
+      }
     }
   }
 

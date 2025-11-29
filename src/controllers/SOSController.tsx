@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { NavigationProp } from '../models/RootParamsListModel';
 import { logger } from '../utils/logger';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { useLocation } from '../contexts/LocationContext';
 import { useBluetooth } from '../contexts/BluetoothContext';
@@ -18,6 +18,7 @@ export const useSOSController = () => {
     const { startScan, stopScan, connect, sendLocationData, disconnect } = useBluetooth();
     const [discoveredNodes, setDiscoveredNodes] = useState<Device[]>([]);
     const [connectedNodes, setConnectedNodes] = useState<Set<string>>(new Set());
+    const activeSendOperations = useRef(0);
 
     const [isConnected, setIsConnected] = useState(false);
     const [isSOSActive, setIsSOSActive] = useState(false);
@@ -93,46 +94,59 @@ export const useSOSController = () => {
 
     // Send location updates when SOS is active
     useEffect(() => {
-        if (isSOSActive && currentLocation) {
-            logger.log('[SOS Controller] Location updated:', {
-                lat: currentLocation.coords.latitude,
-                lon: currentLocation.coords.longitude,
-                timestamp: new Date(currentLocation.timestamp).toISOString(),
-                connectedNodes: connectedNodes.size
-            });
-
-            if (connectedNodes.size === 0) {
-                logger.warn('[SOS Controller] No nodes connected - location not being sent');
-                return;
-            }
-            
-            // Send to all connected nodes
-            discoveredNodes.forEach(async (node) => {
-                if (connectedNodes.has(node.id)) {
-                    try {
-                        const success = await sendLocationData(
-                            LORA_SERVICE_UUID,
-                            LORA_LOCATION_CHARACTERISTIC_UUID,
-                            alertUUID,
-                            userProfile?.id || '',
-                            currentLocation.coords.latitude,
-                            currentLocation.coords.longitude,
-                            currentLocation.coords.accuracy,
-                        );
-                        if (success) {
-                            logger.log('[SOS Controller] Payload sent successfully to:', node.name || node.id);
-                        } else {
-                            logger.error('[SOS Controller] Failed to send payload to:', node.name || node.id);
-                        }
-                    } catch (error) {
-                        logger.error('[SOS Controller] Error sending payload to node:', error);
-                    }
-                }
-            });
+        if (!isSOSActive || !currentLocation) {
+            return;
         }
-    }, [currentLocation, isSOSActive]);
+
+        logger.log('[SOS Controller] Location updated:', {
+            lat: currentLocation.coords.latitude,
+            lon: currentLocation.coords.longitude,
+            timestamp: new Date(currentLocation.timestamp).toISOString(),
+            connectedNodes: connectedNodes.size
+        });
+
+        if (connectedNodes.size === 0) {
+            logger.info('[SOS Controller] No nodes connected - location not being sent');
+            return;
+        }
+        
+        // Send to all connected nodes
+        const sendToNodes = async () => {
+            for (const node of discoveredNodes) {
+                // Re-check if still connected before each send
+                if (!connectedNodes.has(node.id) || !isSOSActive) {
+                    continue;
+                }
+                
+                activeSendOperations.current++;
+                try {
+                    const success = await sendLocationData(
+                        LORA_SERVICE_UUID,
+                        LORA_LOCATION_CHARACTERISTIC_UUID,
+                        alertUUID,
+                        userProfile?.id || '',
+                        currentLocation.coords.latitude,
+                        currentLocation.coords.longitude,
+                        currentLocation.coords.accuracy,
+                    );
+                    if (success) {
+                        logger.log('[SOS Controller] Payload sent successfully to:', node.name || node.id);
+                    } else {
+                        logger.error('[SOS Controller] Failed to send payload to:', node.name || node.id);
+                    }
+                } catch (error) {
+                    logger.error('[SOS Controller] Error sending payload to node:', error);
+                } finally {
+                    activeSendOperations.current--;
+                }
+            }
+        };
+        
+        sendToNodes();
+    }, [currentLocation, isSOSActive, connectedNodes, alertUUID]);
 
     const handleSOSCancel = async () => {
+        // Stop SOS first to prevent location effect from triggering
         setIsSOSActive(false);
         setAlertUUID('');
         logger.log('[SOS Controller] SOS Cancelled');
@@ -143,22 +157,35 @@ export const useSOSController = () => {
         // Stop scanning for new nodes
         stopScan();
         
-        // Disconnect from all nodes
-        discoveredNodes.forEach(async (node) => {
-            if (connectedNodes.has(node.id)) {
-                try {
-                    await disconnect();
-                    logger.log('[SOS Controller] Disconnected from:', node.name || node.id);
-                } catch (error) {
-                    logger.error('[SOS Controller] Error disconnecting from node:', error);
-                }
-            }
-        });
-        
-        // Clear discovered and connected nodes
-        setDiscoveredNodes([]);
+        // Clear connected nodes set immediately to prevent further sends
+        const nodesToDisconnect = Array.from(connectedNodes);
         setConnectedNodes(new Set());
         setIsConnected(false);
+        
+        // Wait for any in-flight send operations to complete
+        const maxWaitTime = 5000; // 2 seconds max
+        const startWait = Date.now();
+        while (activeSendOperations.current > 0 && (Date.now() - startWait) < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        if (activeSendOperations.current > 0) {
+            logger.warn('[SOS Controller] Timed out waiting for send operations to complete');
+        }
+        
+        // Disconnect from all nodes
+        for (const nodeId of nodesToDisconnect) {
+            try {
+                await disconnect(nodeId);
+                const node = discoveredNodes.find(n => n.id === nodeId);
+                logger.log('[SOS Controller] Disconnected from:', node?.name || nodeId);
+            } catch (error) {
+                logger.error('[SOS Controller] Error disconnecting from node:', error);
+            }
+        }
+        
+        // Clear discovered nodes
+        setDiscoveredNodes([]);
     };
 
     return {
