@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserAllergies } from '../models/userAllergiesModel';
 import { supabase } from '../services/supabaseClient';
 import * as ImagePicker from 'expo-image-picker';
+import { databaseService } from '../services/databaseService';
 
 export const useModifyProfileController = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -266,6 +267,50 @@ export const useModifyProfileController = () => {
             );
         } catch (error) {
             logger.error('[ModifyProfile Controller] Error saving:', error);
+            
+            // Save to SQLite for offline sync
+            try {
+                if (userProfile?.id) {
+                    // Prepare allergies data for SQLite
+                    const existingAllergies = allergies.filter(a => !a.id.startsWith('temp-'));
+                    const newAllergies = allergies
+                        .filter(a => a.id.startsWith('temp-'))
+                        .map(a => ({ description: a.description }));
+
+                    const allergiesData = {
+                        existing: existingAllergies,
+                        new: newAllergies,
+                        deleted: deletedAllergyIds
+                    };
+
+                    await databaseService.savePendingUpdate({
+                        user_id: userProfile.id,
+                        name: userName,
+                        last_name: lastName,
+                        photo_url: userPhoto.startsWith('http') ? userPhoto : undefined, // Only save uploaded photos
+                        allergies: JSON.stringify(allergiesData),
+                        created_at: Date.now(),
+                        retry_count: 0
+                    });
+
+                    logger.log('[ModifyProfile Controller] Changes saved locally for later sync');
+                    
+                    Alert.alert(
+                        'Cambios guardados localmente',
+                        'No se pudo conectar al servidor. Tus cambios se sincronizarán automáticamente cuando haya conexión (los datos que verás serán los disponibles en el servidor).',
+                        [
+                            {
+                                text: 'OK',
+                                onPress: () => navigation.goBack(),
+                            }
+                        ]
+                    );
+                    return;
+                }
+            } catch (dbError) {
+                logger.error('[ModifyProfile Controller] Error saving to local database:', dbError);
+            }
+
             const errorMessage = (error as any)?.message || 'No se pudieron guardar los cambios.';
             Alert.alert('Error', `${errorMessage}\n\nPor favor verifica tu conexión a internet e inténtalo de nuevo.`);
         }

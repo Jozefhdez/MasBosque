@@ -9,6 +9,8 @@ import { UserProvider } from './src/contexts/UserContext';
 import { LocationProvider } from './src/contexts/LocationContext';
 import { BluetoothProvider } from './src/contexts/BluetoothContext';
 import * as Sentry from '@sentry/react-native';
+import { databaseService } from './src/services/databaseService';
+import { syncService } from './src/services/syncService';
 
 // Initialize Sentry for error tracking
 Sentry.init({
@@ -38,6 +40,20 @@ function App() {
       SplashScreen.hideAsync();
     }
   }, [loaded, error]);
+
+  useEffect(() => {
+    // Initialize database and sync pending updates on app start
+    const initializeAndSync = async () => {
+      try {
+        await databaseService.initialize();
+        await syncService.syncPendingUpdates();
+      } catch (error) {
+        console.error('Error initializing database or syncing:', error);
+      }
+    };
+
+    initializeAndSync();
+  }, []);
 
   if (!loaded && !error) {
     return null;
