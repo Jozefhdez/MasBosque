@@ -79,20 +79,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isInitialLoad = true;
     
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // Fetch and save user data when session is restored
-        fetchAndSaveUserData(session.user.id);
+    // Check active session with offline support
+    const initializeSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          logger.warn('[AuthContext] Error fetching session from Supabase:', error.message);
+          // Try to restore from local storage if Supabase fails (offline scenario)
+          const localSession = await databaseService.getUserSession();
+          if (localSession) {
+            logger.log('[AuthContext] Restoring session from local storage (offline mode)');
+            // Create a minimal user object from local storage
+            setUser({
+              id: localSession.userId,
+              email: localSession.email,
+              app_metadata: {},
+              user_metadata: {},
+              aud: 'authenticated',
+              created_at: new Date().toISOString()
+            } as User);
+            setDataReady(true);
+          } else {
+            setUser(null);
+          }
+        } else if (session?.user) {
+          setUser(session.user);
+          // Save session locally for offline access
+          await databaseService.saveUserSession(session.user.id, session.user.email || '');
+          // Fetch and save user data when session is restored
+          await fetchAndSaveUserData(session.user.id);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        logger.error('[AuthContext] Error initializing session:', error);
+        // Try local session as fallback
+        try {
+          const localSession = await databaseService.getUserSession();
+          if (localSession) {
+            logger.log('[AuthContext] Restoring session from local storage (fallback)');
+            setUser({
+              id: localSession.userId,
+              email: localSession.email,
+              app_metadata: {},
+              user_metadata: {},
+              aud: 'authenticated',
+              created_at: new Date().toISOString()
+            } as User);
+            setDataReady(true);
+          } else {
+            setUser(null);
+          }
+        } catch (localError) {
+          logger.error('[AuthContext] Error restoring from local storage:', localError);
+          setUser(null);
+        }
+      } finally {
+        setLoading(false);
+        isInitialLoad = false;
       }
-      setLoading(false);
-      isInitialLoad = false;
-    });
+    };
+
+    initializeSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      // Save session locally when signed in
+      if (session?.user) {
+        databaseService.saveUserSession(session.user.id, session.user.email || '')
+          .catch(error => logger.error('[AuthContext] Error saving session locally:', error));
+      }
       // Only fetch on SIGNED_IN event and not during initial load
       // (to avoid duplicate fetch with getSession above)
       if (session?.user && event === 'SIGNED_IN' && !isInitialLoad) {
@@ -108,8 +166,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
     setUser(data.user);
     
-    // Fetch and save user data to local database
+    // Save session locally for offline access
     if (data.user) {
+      await databaseService.saveUserSession(data.user.id, data.user.email || '');
       await fetchAndSaveUserData(data.user.id);
     }
   };
@@ -132,9 +191,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     if (user) {
-      // Clear local user data
+      // Clear local user data and session
       await databaseService.clearAllUserData();
-      logger.log('[AuthContext] Local user data cleared');
+      logger.log('[AuthContext] Local user data and session cleared');
     }
     
     await supabase.auth.signOut();

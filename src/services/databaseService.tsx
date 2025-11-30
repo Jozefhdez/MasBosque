@@ -37,6 +37,16 @@ class DatabaseService {
         );
       `);
 
+      // Create session table for offline support
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS user_session (
+          key TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          email TEXT,
+          created_at INTEGER NOT NULL
+        );
+      `);
+
       // Drop old pending_profile_updates table if it exists
       await this.db.execAsync(`
         DROP TABLE IF EXISTS pending_profile_updates;
@@ -190,9 +200,71 @@ class DatabaseService {
 
       await this.db!.runAsync('DELETE FROM user_allergies');
       await this.db!.runAsync('DELETE FROM user_profile');
+      await this.db!.runAsync('DELETE FROM user_session');
       logger.log('[DatabaseService] All user data cleared');
     } catch (error) {
       logger.error('[DatabaseService] Error clearing user data:', error);
+      throw error;
+    }
+  }
+
+  // Session storage for offline support
+  async saveUserSession(userId: string, email: string): Promise<void> {
+    try {
+      if (!this.db) {
+        await this.initialize();
+      }
+
+      const timestamp = Date.now();
+      await this.db!.runAsync(
+        `INSERT OR REPLACE INTO user_session (key, user_id, email, created_at)
+         VALUES ('current_session', ?, ?, ?)`,
+        [userId, email, timestamp]
+      );
+      logger.log('[DatabaseService] User session saved for offline access');
+    } catch (error) {
+      logger.error('[DatabaseService] Error saving user session:', error);
+      throw error;
+    }
+  }
+
+  async getUserSession(): Promise<{ userId: string; email: string } | null> {
+    try {
+      if (!this.db) {
+        await this.initialize();
+      }
+
+      const session = await this.db!.getFirstAsync<any>(
+        'SELECT user_id, email FROM user_session WHERE key = ? LIMIT 1',
+        ['current_session']
+      );
+
+      if (!session) {
+        logger.log('[DatabaseService] No session found in local storage');
+        return null;
+      }
+
+      logger.log('[DatabaseService] Session found in local storage:', session.user_id);
+      return {
+        userId: session.user_id,
+        email: session.email
+      };
+    } catch (error) {
+      logger.error('[DatabaseService] Error getting user session:', error);
+      return null;
+    }
+  }
+
+  async clearUserSession(): Promise<void> {
+    try {
+      if (!this.db) {
+        await this.initialize();
+      }
+
+      await this.db!.runAsync('DELETE FROM user_session');
+      logger.log('[DatabaseService] User session cleared');
+    } catch (error) {
+      logger.error('[DatabaseService] Error clearing user session:', error);
       throw error;
     }
   }
