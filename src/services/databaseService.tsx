@@ -78,6 +78,7 @@ class DatabaseService {
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
       if (!this.db) {
+        logger.log('[DatabaseService] Database not initialized, initializing now...');
         await this.initialize();
       }
 
@@ -87,8 +88,14 @@ class DatabaseService {
       );
 
       if (!profile) {
+        logger.log('[DatabaseService] No profile found for user:', userId);
         return null;
       }
+
+      logger.log('[DatabaseService] Profile found:', {
+        id: profile.id,
+        is_completed: profile.is_completed
+      });
 
       return {
         id: profile.id,

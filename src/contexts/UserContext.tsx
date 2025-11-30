@@ -30,8 +30,18 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const profile = await databaseService.getUserProfile(user.id);
-      setUserProfile(profile);
-      logger.log('[UserContext] User profile loaded from local database');
+      
+      // If profile is null, it might not be written yet - wait and retry
+      if (!profile) {
+        logger.log('[UserContext] Profile not found in database, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms
+        const retryProfile = await databaseService.getUserProfile(user.id);
+        setUserProfile(retryProfile);
+        logger.log('[UserContext] User profile loaded from local database (retry):', retryProfile ? 'found' : 'not found');
+      } else {
+        setUserProfile(profile);
+        logger.log('[UserContext] User profile loaded from local database');
+      }
     } catch (error) {
       logger.error('[UserContext] Error fetching user profile from database:', error);
       setUserProfile(null);
@@ -68,6 +78,9 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserProfile(null);
       setUserAllergies([]);
       setLoading(false);
+    } else if (user && !dataReady) {
+      // User exists but data is not ready yet - keep loading
+      setLoading(true);
     }
   }, [user, dataReady]);
 
