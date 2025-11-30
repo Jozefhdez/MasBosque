@@ -128,14 +128,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
     
     logger.log('[Auth Context] User signed up successfully. Profile will be created via database trigger.');
-    
-    // Fetch and save user data to local database if user exists
-    if (data.user) {
-      // Wait a bit for the database trigger to create the profile
-      setTimeout(async () => {
-        await fetchAndSaveUserData(data.user!.id);
-      }, 1000);
-    }
   };
 
   const signOut = async () => {
