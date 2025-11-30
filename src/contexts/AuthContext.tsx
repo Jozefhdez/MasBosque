@@ -40,6 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         logger.error('[AuthContext] Error fetching user profile from Supabase:', profileError);
+        // Still mark as ready even if fetch fails - we can use local data
+        setDataReady(true);
         return;
       }
 
@@ -57,6 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (allergiesError) {
         logger.error('[AuthContext] Error fetching user allergies from Supabase:', allergiesError);
+        // Still mark as ready - allergies fetch failure shouldn't block the app
+        setDataReady(true);
         return;
       }
 
@@ -70,7 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setDataReady(true);
     } catch (error) {
       logger.error('[AuthContext] Error fetching and saving user data:', error);
-      setDataReady(false);
+      // Mark as ready anyway - user can still access locally stored data
+      setDataReady(true);
     } finally {
       setIsFetching(false);
     }
