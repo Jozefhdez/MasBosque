@@ -1,8 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '../services/supabaseClient';
 import { useAuth } from './AuthContext';
 import { UserProfile } from '../models/userProfileModel';
 import { UserAllergies } from '../models/userAllergiesModel';
+import { databaseService } from '../services/databaseService';
+import { logger } from '../utils/logger';
 
 type UserContextType = {
   userProfile: UserProfile | null;
@@ -14,7 +15,7 @@ type UserContextType = {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, dataReady } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userAllergies, setUserAllergies] = useState<UserAllergies[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,17 +28,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching user profile:', error);
+    try {
+      const profile = await databaseService.getUserProfile(user.id);
+      setUserProfile(profile);
+      logger.log('[UserContext] User profile loaded from local database');
+    } catch (error) {
+      logger.error('[UserContext] Error fetching user profile from database:', error);
       setUserProfile(null);
-    } else {
-      setUserProfile(data);
     }
     setLoading(false);
   };
@@ -48,16 +45,13 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const { data, error } = await supabase
-      .from('allergies')
-      .select('*')
-      .eq('profile_id', user.id)
-
-    if (error) {
-      console.error('Error fetching user allergies:', error);
+    try {
+      const allergies = await databaseService.getUserAllergies(user.id);
+      setUserAllergies(allergies);
+      logger.log('[UserContext] User allergies loaded from local database');
+    } catch (error) {
+      logger.error('[UserContext] Error fetching user allergies from database:', error);
       setUserAllergies([]);
-    } else {
-      setUserAllergies(data || []);
     }
   }
 
@@ -66,8 +60,16 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    refreshUser();
-  }, [user]);
+    // Only fetch when user exists and data is ready
+    if (user && dataReady) {
+      refreshUser();
+    } else if (!user) {
+      // Clear state when user is logged out
+      setUserProfile(null);
+      setUserAllergies([]);
+      setLoading(false);
+    }
+  }, [user, dataReady]);
 
   return (
     <UserContext.Provider value={{ userProfile, userAllergies, loading, refreshUser: refreshUser }}>
