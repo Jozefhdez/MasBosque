@@ -195,7 +195,11 @@ export const useModifyProfileController = () => {
                 }
             }
 
-            // Update user profile
+            // Prepare allergies for database
+            const existingAllergies = allergies.filter(a => !a.id.startsWith('temp-'));
+            const newAllergies = allergies.filter(a => a.id.startsWith('temp-'));
+
+            // Update user profile in Supabase
             const { error: profileError } = await supabase
                 .from('users')
                 .update({
@@ -207,7 +211,7 @@ export const useModifyProfileController = () => {
             
             if (profileError) throw profileError;
 
-            // Delete allergies that were removed by the user
+            // Delete allergies that were removed by the user in Supabase
             for (const allergyId of deletedAllergyIds) {
                 const { error: deleteError } = await supabase
                     .from('allergies')
@@ -217,11 +221,7 @@ export const useModifyProfileController = () => {
                 if (deleteError) throw deleteError;
             }
 
-            // alergies
-            const existingAllergies = allergies.filter(a => !a.id.startsWith('temp-'));
-            const newAllergies = allergies.filter(a => a.id.startsWith('temp-'));
-
-            // Update existing allergies
+            // Update existing allergies in Supabase
             for (const allergy of existingAllergies) {
                 const { error: allergiesError } = await supabase
                     .from('allergies')
@@ -231,18 +231,39 @@ export const useModifyProfileController = () => {
                 if (allergiesError) throw allergiesError;
             }
 
-            // Insert new allergies
+            // Insert new allergies in Supabase and collect their IDs
+            const insertedAllergies = [];
             for (const allergy of newAllergies) {
                 if (allergy.description.trim() !== '') {
-                    const { error: allergiesError } = await supabase
+                    const { data, error: allergiesError } = await supabase
                         .from('allergies')
                         .insert({
                             profile_id: userProfile?.id,
                             description: allergy.description
-                        });
+                        })
+                        .select()
+                        .single();
 
                     if (allergiesError) throw allergiesError;
+                    if (data) insertedAllergies.push(data);
                 }
+            }
+
+            // Update local SQLite database with the new data
+            if (userProfile) {
+                const updatedProfile = {
+                    ...userProfile,
+                    name: userName,
+                    last_name: lastName,
+                    photo_url: photoUrl
+                };
+                await databaseService.saveUserProfile(updatedProfile);
+
+                // Combine existing and new allergies for local storage
+                const allAllergies = [...existingAllergies, ...insertedAllergies];
+                await databaseService.saveUserAllergies(userProfile.id, allAllergies);
+
+                logger.log('[ModifyProfile Controller] Profile and allergies saved to local database');
             }
 
             // Clear the deleted allergies list after successful save
@@ -267,50 +288,6 @@ export const useModifyProfileController = () => {
             );
         } catch (error) {
             logger.error('[ModifyProfile Controller] Error saving:', error);
-            
-            // Save to SQLite for offline sync
-            try {
-                if (userProfile?.id) {
-                    // Prepare allergies data for SQLite
-                    const existingAllergies = allergies.filter(a => !a.id.startsWith('temp-'));
-                    const newAllergies = allergies
-                        .filter(a => a.id.startsWith('temp-'))
-                        .map(a => ({ description: a.description }));
-
-                    const allergiesData = {
-                        existing: existingAllergies,
-                        new: newAllergies,
-                        deleted: deletedAllergyIds
-                    };
-
-                    await databaseService.savePendingUpdate({
-                        user_id: userProfile.id,
-                        name: userName,
-                        last_name: lastName,
-                        photo_url: userPhoto.startsWith('http') ? userPhoto : undefined, // Only save uploaded photos
-                        allergies: JSON.stringify(allergiesData),
-                        created_at: Date.now(),
-                        retry_count: 0
-                    });
-
-                    logger.log('[ModifyProfile Controller] Changes saved locally for later sync');
-                    
-                    Alert.alert(
-                        'Cambios guardados localmente',
-                        'No se pudo conectar al servidor. Tus cambios se sincronizarán automáticamente cuando haya conexión (los datos que verás serán los disponibles en el servidor).',
-                        [
-                            {
-                                text: 'OK',
-                                onPress: () => navigation.goBack(),
-                            }
-                        ]
-                    );
-                    return;
-                }
-            } catch (dbError) {
-                logger.error('[ModifyProfile Controller] Error saving to local database:', dbError);
-            }
-
             const errorMessage = (error as any)?.message || 'No se pudieron guardar los cambios.';
             Alert.alert('Error', `${errorMessage}\n\nPor favor verifica tu conexión a internet e inténtalo de nuevo.`);
         }

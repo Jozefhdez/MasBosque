@@ -7,6 +7,7 @@ import { useUser } from '../contexts/UserContext';
 import { UserAllergies } from '../models/userAllergiesModel';
 import { supabase } from '../services/supabaseClient';
 import * as ImagePicker from 'expo-image-picker';
+import { databaseService } from '../services/databaseService';
 
 export const useCompleteProfileController = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -193,24 +194,28 @@ export const useCompleteProfileController = () => {
                 }
             }
 
-            // alergies
+            // Prepare new allergies
             const newAllergies = allergies.filter(a => a.id.startsWith('temp-'));
 
-            // Insert new allergies
+            // Insert new allergies in Supabase and collect their IDs
+            const insertedAllergies = [];
             for (const allergy of newAllergies) {
                 if (allergy.description.trim() !== '') {
-                    const { error: allergiesError } = await supabase
+                    const { data, error: allergiesError } = await supabase
                         .from('allergies')
                         .insert({
                             profile_id: userProfile?.id,
                             description: allergy.description
-                        });
+                        })
+                        .select()
+                        .single();
 
                     if (allergiesError) throw allergiesError;
+                    if (data) insertedAllergies.push(data);
                 }
             }
 
-            // Update profile completion flag
+            // Update profile completion flag in Supabase
             const { error: profileError } = await supabase
                 .from('users')
                 .update({ 
@@ -220,6 +225,23 @@ export const useCompleteProfileController = () => {
                 .eq('id', userProfile?.id);
 
             if (profileError) throw profileError;
+
+            // Update local SQLite database
+            if (userProfile) {
+                const updatedProfile = {
+                    ...userProfile,
+                    is_completed: true,
+                    photo_url: photoUrl
+                };
+                await databaseService.saveUserProfile(updatedProfile);
+
+                // Save allergies to local database
+                if (insertedAllergies.length > 0) {
+                    await databaseService.saveUserAllergies(userProfile.id, insertedAllergies);
+                }
+
+                logger.log('[CompleteProfile Controller] Profile and allergies saved to local database');
+            }
 
             refreshUser();
             logger.log('[CompleteProfile Controller] Profile changes saved');
