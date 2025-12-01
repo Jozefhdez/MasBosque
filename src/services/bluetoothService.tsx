@@ -244,7 +244,6 @@ class BluetoothService {
     user: string,
     latitude: number,
     longitude: number,
-    accuracy?: number | null,
   ): Promise<boolean> {
     try {
       // Check if device is still connected
@@ -254,13 +253,16 @@ class BluetoothService {
         return false;
       }
 
+      // Round coordinates to 6 decimal places to limit packet size
+      const roundedLat = Math.round(latitude * 1000000) / 1000000;
+      const roundedLon = Math.round(longitude * 1000000) / 1000000;
+
       // Create a JSON payload with location data
       const locationPayload = {
         alertUUID: alertUUID,
         user: user,
-        lat: latitude,
-        lon: longitude,
-        acc: accuracy ?? null,
+        lat: roundedLat,
+        lon: roundedLon,
         timestamp: new Date().toISOString(),
       };
 

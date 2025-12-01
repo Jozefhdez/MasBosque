@@ -20,8 +20,7 @@ interface BluetoothContextType {
         alertUUID: string,
         user: string,
         latitude: number,
-        longitude: number,
-        accuracy?: number | null
+        longitude: number
     ) => Promise<boolean>;
     getServicesAndCharacteristics: () => Promise<{
         serviceUUID: string;
@@ -171,8 +170,7 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
         alertUUID: string,
         user: string,
         latitude: number,
-        longitude: number,
-        accuracy?: number | null
+        longitude: number
     ): Promise<boolean> => {
 
         if (!connectedDevice) {
@@ -188,7 +186,6 @@ export const BluetoothProvider: React.FC<{ children: ReactNode }> = ({ children 
             user,
             latitude,
             longitude,
-            accuracy,
         );
     };
 

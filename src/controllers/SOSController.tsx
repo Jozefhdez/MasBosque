@@ -127,7 +127,6 @@ export const useSOSController = () => {
                         userProfile?.id || '',
                         currentLocation.coords.latitude,
                         currentLocation.coords.longitude,
-                        currentLocation.coords.accuracy,
                     );
                     if (success) {
                         logger.log('[SOS Controller] Payload sent successfully to:', node.name || node.id);
